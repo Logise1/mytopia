@@ -44,6 +44,7 @@ const hudAssets = {
     life: new Image(),
     tablon: new Image(),
     pupil: new Image(),
+    cuts: new Image(),
     isLoaded: false
 };
 
@@ -131,6 +132,8 @@ const multiplayer = {
     moveBuffer: [] // Acumular movimientos para enviar
 };
 
+const skinCaches = {}; // Almacenar el spritesheet procesado para cada color de piel visto
+
 // --- FIREBASE INIT ---
 let app, auth, db, fs;
 
@@ -147,7 +150,10 @@ async function initFirebase() {
     fb.onAuthStateChanged(auth, async (user) => {
         if (user) {
             multiplayer.userId = user.uid;
-            multiplayer.username = user.displayName;
+            // Si el nombre no está definido o es string vacío, intentamos sacar el principio del email
+            let name = user.displayName;
+            if (!name && user.email) name = user.email.split('@')[0];
+            multiplayer.username = name || 'Jugador';
 
             document.getElementById('auth-menu').classList.add('hidden');
             document.getElementById('logout-btn').classList.remove('hidden');
@@ -159,7 +165,7 @@ async function initFirebase() {
                 const docSnap = await fb.getDoc(fb.doc(fs, "users", user.uid));
                 if (docSnap.exists() && docSnap.data().skin) {
                     skinColor = docSnap.data().skin;
-                    if (tileAssets && tileAssets.isLoaded) processAllAnimations(skinColor);
+                    if (tileAssets && tileAssets.isLoaded) getSkinAnimations(skinColor);
                 }
             } catch (e) { }
 
@@ -253,6 +259,7 @@ function startSync() {
                 multiplayer.players[uid].direction = data[uid].direction;
                 multiplayer.players[uid].isMoving = data[uid].isMoving;
                 multiplayer.players[uid].skin = data[uid].skin;
+                if (data[uid].username) multiplayer.players[uid].username = data[uid].username;
             }
         }
     });
@@ -401,7 +408,8 @@ async function loadHUDAssets() {
         heartNight: 'heart-night.svg',
         life: 'life-happyness.svg',
         tablon: 'selecciontablon.svg',
-        pupil: 'pupila.svg'
+        pupil: 'pupila.svg',
+        cuts: 'cuts.svg'
     };
 
     for (const [key, filename] of Object.entries(files)) {
@@ -441,15 +449,23 @@ async function loadAllAnimations() {
     }
 
     await Promise.all(loadPromises);
-    processAllAnimations(skinColor);
+    getSkinAnimations(skinColor);
 }
 
-function processAllAnimations(color) {
+function getSkinAnimations(color) {
+    if (skinCaches[color]) return skinCaches[color];
+
     const targetColor = hexToRgb(color);
+    if (!targetColor) return player.animations;
+
+    const newAnimSet = { up: [], down: [], left: [], right: [], forward: [] };
 
     for (const dir in player.animations) {
-        player.animations[dir].forEach(frameData => {
-            if (!frameData || !frameData.original) return;
+        player.animations[dir].forEach((frameData, idx) => {
+            if (!frameData || !frameData.original) {
+                newAnimSet[dir][idx] = { original: null, processed: null };
+                return;
+            }
 
             const img = frameData.original;
             const tempCanvas = document.createElement('canvas');
@@ -471,9 +487,16 @@ function processAllAnimations(color) {
                 }
             }
             tempCtx.putImageData(imageData, 0, 0);
-            frameData.processed = tempCanvas;
+            
+            newAnimSet[dir][idx] = {
+                original: img,
+                processed: tempCanvas
+            };
         });
     }
+    
+    skinCaches[color] = newAnimSet;
+    return newAnimSet;
 }
 
 function hexToRgb(hex) {
@@ -491,7 +514,7 @@ document.querySelectorAll('.color-btn').forEach(btn => {
         document.querySelector('.color-btn.selected')?.classList.remove('selected');
         e.target.classList.add('selected');
         skinColor = e.target.dataset.color;
-        processAllAnimations(skinColor);
+        getSkinAnimations(skinColor);
     });
 });
 
@@ -713,8 +736,9 @@ function drawTreeShadows() {
             const treeW = tileSize * 2.5;
             const treeH = tileSize * 3.0; 
             
+            // Punto pivote: subimos la sombra un poco (-15px) para mejor perspectiva
             const baseX = drawX + treeHitbox.xRel;
-            const baseY = drawY + treeHitbox.yRel + treeHitbox.h / 2;
+            const baseY = drawY + treeHitbox.yRel + treeHitbox.h / 2 - 15;
             
             ctx.save();
             ctx.translate(baseX, baseY);
@@ -768,17 +792,13 @@ function drawPlayerShadows() {
             baseWidth = baseHeight * aspect;
         }
 
-        if (ent.isLocal) {
-            if (ent.isMoving) {
-                const cycleProgress = (ent.frame + (ent.frameTimer / ent.frameDuration)) / 6;
-                const bounce = Math.abs(Math.sin(cycleProgress * Math.PI * 2));
-                jumpOffset = -bounce * 10;
-                const s = (bounce - 0.5) * 0.1;
-                scaleY = 1 + s; scaleX = 1 - s;
-            } else {
-                const breath = Math.sin((ent.idleTime || 0) * 3);
-                scaleY = 1 + breath * 0.02; scaleX = 1 - breath * 0.01;
-            }
+        // Lógica de rebote multi-jugador para el LERP más directo
+        if (ent.isMoving) {
+            const jumpProgress = (performance.now() % 500) / 500; // Un ciclo simple de rebote basado en tiempo si isMoving es true
+            const bounce = Math.abs(Math.sin(jumpProgress * Math.PI)); // Un arco suavizado de 0 a 1 y vuelta a 0
+            jumpOffset = -bounce * 10;
+            const s = (bounce - 0.5) * 0.1;
+            scaleY = 1 + s; scaleX = 1 - s;
         }
 
         const drawW = baseWidth * scaleX;
@@ -844,8 +864,10 @@ function drawSingleTree(tree, tileSize) {
 }
 
 function drawPlayer() {
-    const anim = player.animations[player.direction];
-    const frameData = anim ? anim[player.frame] : null;
+    // Usamos las animaciones con el color activo cacheadas
+    const animSet = getSkinAnimations(skinColor);
+    const anim = animSet[player.direction];
+    const frameData = anim ? anim[Math.floor(player.frame)] : null;
 
     const screenX = player.x - camera.x;
     const screenY = player.y - camera.y;
@@ -914,36 +936,74 @@ let hudRotationTarget = 0;
 function drawHUD() {
     if (!hudAssets.isLoaded) return;
 
-    // 1. Icono Corazón (Agrandado: 60x60)
-    // Cambia sprite según la hora (noche entre las 20:00 y las 6:00)
-    const isNight = worldTime >= 20 || worldTime <= 6;
-    const heartImg = isNight ? hudAssets.heartNight : hudAssets.heartDay;
-    ctx.drawImage(heartImg, 15, 12, 60, 60);
+    // --- 0. DIBUJAR CAPA OVERLAY (CUTS) HACIENDO 'OBJECT-FIT: COVER' ---
+    if (hudAssets.cuts.complete && hudAssets.cuts.naturalWidth > 0) {
+        const cRatio = canvas.width / canvas.height;
+        const iRatio = hudAssets.cuts.naturalWidth / hudAssets.cuts.naturalHeight;
+        let dW = canvas.width;
+        let dH = canvas.height;
+        let dX = 0;
+        let dY = 0;
 
-    // 2. Barra de Vida Triple Borde
-    const barX = 85; // Desplazada por el corazón más grande
-    const barY = 25;
+        if (cRatio > iRatio) {
+            dH = canvas.width / iRatio;
+            dY = (canvas.height - dH) / 2;
+        } else {
+            dW = canvas.height * iRatio;
+            dX = (canvas.width - dW) / 2;
+        }
+        
+        ctx.drawImage(hudAssets.cuts, dX, dY, dW, dH);
+    }
+
+    const isNight = worldTime >= 20 || worldTime <= 6;
+    
+    // Posiciones en la parte inferior izquierda
+    const barX = 45; 
+    const barY = canvas.height - 85; // Subida junto con el corazón
     const barW = 200;
     const barH = 30;
 
+    // --- 1. BARRA DE VIDA (Fondo / Z-Order bajo) ---
     // Borde Exterior Oscuro (5d3350)
     ctx.fillStyle = '#5d3350';
     ctx.fillRect(barX, barY, barW, barH);
 
-    // Borde Medio Claro (ffb58b) - Grosor de 3px
+    // Borde Medio Claro (ffb58b)
     ctx.fillStyle = '#ffb58b';
     ctx.fillRect(barX + 2, barY + 2, barW - 4, barH - 4);
 
-    // Fondo Interior Oscuro (5d3350) - Grosor de 6px total desde fuera
+    // Fondo Interior
     ctx.fillStyle = '#5d3350';
     ctx.fillRect(barX + 5, barY + 5, barW - 10, barH - 10);
 
-    // Progreso (e240af)
+    // Progreso
     const progressW = (stats.energy / 100) * (barW - 10);
     if (progressW > 0) {
         ctx.fillStyle = '#e240af';
         ctx.fillRect(barX + 5, barY + 5, progressW, barH - 10);
     }
+
+    // --- 2. CORAZÓN (Arriba / Z-Order alto y overlapeando) ---
+    const heartImg = isNight ? hudAssets.heartNight : hudAssets.heartDay;
+    const heartBaseSize = 60;
+    const heartX = 10; // Queda superpuesto a la barra
+    const heartY = canvas.height - 95; // Sobresale por arriba de la barra y subido proporcionalmente
+
+    ctx.save();
+    // Movemos el origen al centro del corazón para escalarlo
+    ctx.translate(heartX + heartBaseSize / 2, heartY + heartBaseSize / 2);
+
+    let scale = 1;
+    if (isNight) {
+        // Latido rítmico solo de noche (rápido y notable)
+        const beat = performance.now() * 0.005; 
+        scale = 1 + Math.max(0, Math.sin(beat)) * 0.15 + Math.max(0, Math.sin(beat + 0.3)) * 0.1;
+    }
+
+    ctx.scale(scale, scale);
+    ctx.drawImage(heartImg, -heartBaseSize / 2, -heartBaseSize / 2, heartBaseSize, heartBaseSize);
+    ctx.restore();
 
     // 3. (Tablón ahora en CSS)
 
@@ -1045,15 +1105,40 @@ function drawSingleOtherPlayer(uid) {
     ctx.fillStyle = "white";
     ctx.font = "bold 14px Segoe UI";
     ctx.textAlign = "center";
-    ctx.fillText(p.username, screenX + player.width / 2, screenY - 10);
+    ctx.fillText(p.username || "", screenX + player.width / 2, screenY - 10);
 
-    const anim = player.animations[p.direction];
+    const animSet = getSkinAnimations(p.skin || '#ffdbac');
+    const anim = animSet[p.direction];
     const frameData = anim ? anim[Math.floor(p.frame || 0)] : null;
 
+    let jumpOffset = 0;
+    let scaleX = 1; let scaleY = 1;
+    let baseHeight = player.height; let baseWidth = player.width;
+
+    if (frameData && frameData.original) {
+        const aspect = frameData.original.width / frameData.original.height;
+        baseWidth = baseHeight * aspect;
+    }
+
+    if (p.isMoving) {
+        // Usamos tiempo global para animar un rebote fluido mientras se actualiza LERP
+        const jumpProgress = (performance.now() % 500) / 500;
+        const bounce = Math.abs(Math.sin(jumpProgress * Math.PI));
+        jumpOffset = -bounce * 10;
+        const s = (bounce - 0.5) * 0.1;
+        scaleY = 1 + s; scaleX = 1 - s;
+    }
+
+    const drawW = baseWidth * scaleX;
+    const drawH = baseHeight * scaleY;
+    const drawX = screenX + (player.width - drawW) / 2;
+    const drawY = screenY + (player.height - drawH) + jumpOffset;
+
     if (frameData && frameData.processed) {
-        ctx.drawImage(frameData.processed, screenX, screenY, player.width, player.height);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(frameData.processed, drawX, drawY, drawW, drawH);
     } else {
-        ctx.fillStyle = p.skin;
+        ctx.fillStyle = p.skin || '#ffdbac';
         ctx.beginPath();
         ctx.arc(screenX + player.width / 2, screenY + player.height / 2, 20, 0, Math.PI * 2);
         ctx.fill();
