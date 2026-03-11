@@ -22,6 +22,13 @@ const stats = {
     health: 100
 };
 
+// Mundo y Tiempo
+let worldTime = 12; // De 0 a 24 (12 = mediodía)
+const dayNightColors = {
+    night: { r: 5, g: 5, b: 40, a: 0.6 }, // Azul oscuro traslúcido
+    day: { r: 0, g: 0, b: 0, a: 0 }
+};
+
 // Modo Debug
 const debug = {
     active: false,
@@ -97,9 +104,142 @@ const tileAssets = {
 const mapSize = 100;
 const mapData = [];
 
+// Multiplayer
+const multiplayer = {
+    players: {}, // Otros jugadores
+    userId: null,
+    username: "",
+    lastSend: 0,
+    sendInterval: 500, // 0.5s entre ráfagas
+    moveBuffer: [] // Acumular movimientos para enviar
+};
+
+// --- FIREBASE INIT ---
+let app, auth, db, fs;
+
+async function initFirebase() {
+    const { fb } = window;
+    app = fb.initializeApp(window.firebaseConfig);
+    auth = fb.getAuth(app);
+    db = fb.getDatabase(app);
+    fs = fb.getFirestore(app);
+
+    setupAuthListeners();
+}
+
+function setupAuthListeners() {
+    const authBtn = document.getElementById('auth-action-btn');
+    const toggleBtn = document.getElementById('toggle-auth');
+    const userField = document.getElementById('username');
+    const passField = document.getElementById('password');
+    const authError = document.getElementById('auth-error');
+    let isRegister = false;
+
+    toggleBtn.onclick = () => {
+        isRegister = !isRegister;
+        authBtn.innerText = isRegister ? 'Registrarse' : 'Entrar';
+        toggleBtn.innerText = isRegister ? '¿Ya tienes cuenta? Entra' : '¿No tienes cuenta? Regístrate';
+    };
+
+    authBtn.onclick = async () => {
+        const username = userField.value.trim();
+        const password = passField.value;
+        const email = `${username}@mytop.ia`; // Email interno secreto
+
+        if (!username || !password) {
+            authError.innerText = "Error: Username y Password obligatorios";
+            return;
+        }
+
+        try {
+            if (isRegister) {
+                const cred = await fb.createUserWithEmailAndPassword(auth, email, password);
+                await fb.updateProfile(cred.user, { displayName: username });
+                await fb.setDoc(fb.doc(fs, "users", cred.user.uid), {
+                    username: username,
+                    skin: skinColor,
+                    createdAt: Date.now()
+                });
+            } else {
+                await fb.signInWithEmailAndPassword(auth, email, password);
+            }
+            
+            multiplayer.userId = auth.currentUser.uid;
+            multiplayer.username = username || auth.currentUser.displayName;
+            
+            document.getElementById('auth-menu').classList.add('hidden');
+            skinMenu.classList.remove('hidden');
+            gameState = 'customizing';
+            
+            startSync();
+        } catch (e) {
+            authError.innerText = "Error: " + e.message;
+        }
+    };
+}
+
+function startSync() {
+    const playersRef = fb.ref(db, 'players');
+    
+    // Escuchar a otros
+    fb.onValue(playersRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+        
+        for (let uid in data) {
+            if (uid === multiplayer.userId) continue;
+            
+            if (!multiplayer.players[uid]) {
+                multiplayer.players[uid] = { 
+                    x: data[uid].x, y: data[uid].y, 
+                    targetX: data[uid].x, targetY: data[uid].y,
+                    username: data[uid].username,
+                    skin: data[uid].skin || '#ffdbac',
+                    direction: data[uid].direction || 'forward',
+                    isMoving: data[uid].isMoving || false,
+                    frame: 0
+                };
+            } else {
+                // Interpolación
+                multiplayer.players[uid].targetX = data[uid].x;
+                multiplayer.players[uid].targetY = data[uid].y;
+                multiplayer.players[uid].direction = data[uid].direction;
+                multiplayer.players[uid].isMoving = data[uid].isMoving;
+                multiplayer.players[uid].skin = data[uid].skin;
+            }
+        }
+    });
+
+    // Desconectar
+    const myRef = fb.ref(db, `players/${multiplayer.userId}`);
+    fb.onDisconnect(myRef).remove();
+}
+
+function sendMovement() {
+    if (!multiplayer.userId || gameState !== 'playing') return;
+    
+    // Solo enviar cada 0.5s como pidió el usuario (simulando ráfaga o límite)
+    const now = performance.now();
+    if (now - multiplayer.lastSend < multiplayer.sendInterval) return;
+    
+    multiplayer.lastSend = now;
+    const myRef = fb.ref(db, `players/${multiplayer.userId}`);
+    fb.update(myRef, {
+        x: player.x,
+        y: player.y,
+        direction: player.direction,
+        isMoving: player.isMoving,
+        username: multiplayer.username,
+        skin: skinColor
+    });
+}
+
 // Inicialización
 window.onload = async () => {
-    // Generar isla
+    // 1. Firebase primero
+    await initFirebase();
+
+    // 2. Generar isla
     const centerX = mapSize / 2;
     const centerY = mapSize / 2;
     const radius = 10;
@@ -133,8 +273,7 @@ window.onload = async () => {
     // 1. Iniciamos zoom-in
     setTimeout(() => {
         container.classList.add('zoomed');
-        gameState = 'customizing';
-        skinMenu.classList.remove('hidden');
+        // El skinMenu y el gameState = 'customizing' ahora ocurren DESPUÉS del login
     }, 500);
 
     // 2. Cargar Assets
@@ -493,6 +632,14 @@ function drawPlayer() {
 
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(frameData.processed, drawX, drawY, drawW, drawH);
+
+    // Dibujar nombre local sobre la cabeza
+    if (multiplayer.username) {
+        ctx.fillStyle = "white";
+        ctx.font = "bold 14px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText(multiplayer.username, screenX + player.width / 2, screenY - 10);
+    }
 }
 
 let hudRotation = 0;
@@ -501,11 +648,14 @@ let hudRotationTarget = 0;
 function drawHUD() {
     if (!hudAssets.isLoaded) return;
 
-    // 1. Icono Corazón (Arriba Izquierda)
-    ctx.drawImage(hudAssets.heartDay, 20, 20, 40, 40);
+    // 1. Icono Corazón (Agrandado: 60x60)
+    // Cambia sprite según la hora (noche entre las 20:00 y las 6:00)
+    const isNight = worldTime >= 20 || worldTime <= 6;
+    const heartImg = isNight ? hudAssets.heartNight : hudAssets.heartDay;
+    ctx.drawImage(heartImg, 15, 12, 60, 60);
 
     // 2. Barra de Vida Triple Borde
-    const barX = 70;
+    const barX = 85; // Desplazada por el corazón más grande
     const barY = 25;
     const barW = 200;
     const barH = 30;
@@ -583,12 +733,84 @@ function gameLoop(currentTime) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawTiles();
+    
+    // Dibujar otros jugadores
+    drawOtherPlayers();
+    
     drawPlayer();
+
+    // Sincronizar movimiento con Firebase (8fps aprox / 0.5s packets)
+    sendMovement();
+
+    // --- EFECTO DÍA/NOCHE (Overlay de oscuridad) ---
+    applyDayNightEffect();
+
     drawHUD();
 
     if (debug.active) updateDebugPanel();
 
     requestAnimationFrame(gameLoop);
+}
+
+function drawOtherPlayers() {
+    for (let uid in multiplayer.players) {
+        const p = multiplayer.players[uid];
+        
+        // Lerp para suavizado (8fps a 60fps)
+        p.x += (p.targetX - p.x) * 0.1;
+        p.y += (p.targetY - p.y) * 0.1;
+
+        const screenX = p.x - camera.x;
+        const screenY = p.y - camera.y;
+
+        // Solo dibujar si está en pantalla
+        if (screenX < -100 || screenX > canvas.width + 100 || screenY < -100 || screenY > canvas.height + 100) continue;
+
+        // Dibujar nombre
+        ctx.fillStyle = "white";
+        ctx.font = "bold 14px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText(p.username, screenX + player.width / 2, screenY - 10);
+
+        // Dibujar sprite (usamos la misma lógica que drawPlayer pero simplificada)
+        const anim = player.animations[p.direction];
+        const frameData = anim ? anim[p.frame] : null;
+
+        if (frameData && frameData.processed) {
+            ctx.drawImage(frameData.processed, screenX, screenY, player.width, player.height);
+        } else {
+            ctx.fillStyle = p.skin;
+            ctx.beginPath();
+            ctx.arc(screenX + player.width / 2, screenY + player.height / 2, 20, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Animación simple para otros
+        if (p.isMoving) {
+            p.frame = (p.frame + 0.1) % totalFrames;
+        } else {
+            p.frame = 0;
+        }
+    }
+}
+
+function applyDayNightEffect() {
+    let opacity = 0;
+    
+    // Curva de oscuridad: 0 (día) a 0.6 (noche cerrada)
+    // Atardecer: 18:00 a 21:00, Amanecer: 05:00 a 08:00
+    if (worldTime >= 18 && worldTime <= 21) {
+        opacity = ((worldTime - 18) / 3) * 0.6;
+    } else if (worldTime > 21 || worldTime < 5) {
+        opacity = 0.6;
+    } else if (worldTime >= 5 && worldTime <= 8) {
+        opacity = (1 - (worldTime - 5) / 3) * 0.6;
+    }
+
+    if (opacity > 0) {
+        ctx.fillStyle = `rgba(5, 5, 40, ${opacity})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 }
 
 // --- SISTEMA DE DEBUG ---
@@ -617,26 +839,32 @@ function createDebugPanel() {
         { label: 'Aceleración', key: 'speed', min: 0, max: 5000, step: 100 },
         { label: 'Vel Máx', key: 'maxSpeed', min: 0, max: 2000, step: 50 },
         { label: 'Fricción', key: 'friction', min: 0.1, max: 1, step: 0.01 },
-        { label: 'Energía', key: 'energy', min: 0, max: 100, step: 1, obj: stats }
+        { label: 'Energía', key: 'energy', min: 0, max: 100, step: 1, obj: stats },
+        { label: 'Hora del día', key: 'worldTime', min: 0, max: 24, step: 0.1, obj: window }
     ];
 
     controls.forEach(c => {
         const div = document.createElement('div');
         div.style.marginBottom = '5px';
-        const obj = c.obj || player;
+        
+        let initialVal;
+        if (c.key === 'worldTime') initialVal = worldTime;
+        else initialVal = (c.obj || player)[c.key];
+
         div.innerHTML = `
-            <label>${c.label}: <span id="val-${c.key}">${obj[c.key]}</span></label><br>
-            <input type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${obj[c.key]}" 
-                   oninput="window.updateDebugValue('${c.key}', this.value, ${c.obj ? 'true' : 'false'})">
+            <label>${c.label}: <span id="val-${c.key}">${initialVal}</span></label><br>
+            <input type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${initialVal}" 
+                   oninput="window.updateDebugValue('${c.key}', this.value, '${c.label}')">
         `;
         debug.panel.appendChild(div);
     });
 
     document.body.appendChild(debug.panel);
     
-    window.updateDebugValue = (key, val, isStat) => {
+    window.updateDebugValue = (key, val, label) => {
         const value = parseFloat(val);
-        if (isStat) stats[key] = value;
+        if (key === 'worldTime') worldTime = value;
+        else if (label === 'Energía') stats[key] = value;
         else player[key] = value;
         document.getElementById(`val-${key}`).innerText = val;
     };

@@ -12,7 +12,21 @@
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
 
-        <!-- Menú de personalización (estilo flotante al lado del personaje) -->
+        <!-- Menú de Autenticación -->
+        <div id="auth-menu">
+            <div id="auth-tablon">
+                <h2>Bienvenido a MyTopia</h2>
+                <div id="login-form">
+                    <input type="text" id="username" placeholder="Username">
+                    <input type="password" id="password" placeholder="Password">
+                    <p id="auth-error" class="error-text"></p>
+                    <button id="auth-action-btn">Entrar</button>
+                    <p id="toggle-auth">¿No tienes cuenta? Regístrate</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menú de personalización (ahora se activa tras el login) -->
         <div id="skin-menu" class="hidden">
             <h3>Elige tu piel</h3>
             <div class="color-options">
@@ -33,7 +47,29 @@
         <img id="tile-sprite" src="sprites/tiles/base_tile.png">
     </div>
 
-    <div id="controls-hint">Usa WASD o flechas para caminar</div>
+
+    <!-- Firebase SDK (v10+) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, set, onValue, update, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Configuración exportada para game.js
+        window.firebaseConfig = {
+            apiKey: "AIzaSyCn31YaFgeC8D1JveJUSYrHkVk8cys6o90",
+            authDomain: "mytopia-7df51.firebaseapp.com",
+            databaseURL: "https://mytopia-7df51-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "mytopia-7df51",
+            storageBucket: "mytopia-7df51.firebasestorage.app",
+            messagingSenderId: "476930744741",
+            appId: "1:476930744741:web:9f630c7ed1bc4b4126084c",
+            measurementId: "G-SM7C0ZVTG6"
+        };
+
+        // Exportar módulos a window para game.js
+        window.fb = { initializeApp, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, getDatabase, ref, set, onValue, update, onDisconnect, getFirestore, doc, setDoc, getDoc };
+    </script>
 
     <script src="game.js"></script>
 </body>
