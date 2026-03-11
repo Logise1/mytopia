@@ -489,19 +489,30 @@ function update(dt) {
     player.x += player.vx * dt;
     player.y += player.vy * dt;
 
-    // Actualizar Cámara para que el personaje esté centrado
-    camera.x = player.x - canvas.width / 2 + player.width / 2;
-    camera.y = player.y - canvas.height / 2 + player.height / 2;
+    // Actualizar Cámara de forma SUAVE (Lerp)
+    const targetCamX = player.x - canvas.width / 2 + player.width / 2;
+    const targetCamY = player.y - canvas.height / 2 + player.height / 2;
+    
+    // Si la cámara acaba de aparecer o está muy lejos, cortamos directamente
+    if (Math.abs(targetCamX - camera.x) > 1000) {
+        camera.x = targetCamX;
+        camera.y = targetCamY;
+    } else {
+        camera.x += (targetCamX - camera.x) * 5 * dt;
+        camera.y += (targetCamY - camera.y) * 5 * dt;
+    }
 
     // Animación con DeltaTime
     if (player.isMoving) {
         player.frameTimer += dt;
+        player.idleTime = 0;
         if (player.frameTimer > player.frameDuration) {
             player.frame = (player.frame + 1) % totalFrames;
             player.frameTimer = 0;
         }
     } else {
         player.frame = 0; // Primer frame como posición de reposo (Idle en 1)
+        player.idleTime = (player.idleTime || 0) + dt;
     }
 }
 
@@ -583,6 +594,11 @@ function drawPlayer() {
         const s = (bounce - 0.5) * 0.1; 
         scaleY = 1 + s;
         scaleX = 1 - s;
+    } else {
+        // Respiración suave en Idle (Squash & Stretch en reposo)
+        const breath = Math.sin((player.idleTime || 0) * 3);
+        scaleY = 1 + breath * 0.02; // Sube/baja un 2%
+        scaleX = 1 - breath * 0.01; // Ensancha un 1% inverso
     }
 
     const drawW = baseWidth * scaleX;

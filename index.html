@@ -11,6 +11,7 @@
 <body>
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
+        <button id="logout-btn" class="hidden">Cerrar sesión</button>
 
         <!-- Menú de Autenticación -->
         <div id="auth-menu">
@@ -51,7 +52,7 @@
     <!-- Firebase SDK (v10+) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getDatabase, ref, set, onValue, update, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -68,7 +69,7 @@
         };
 
         // Exportar módulos a window para game.js
-        window.fb = { initializeApp, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, getDatabase, ref, set, onValue, update, onDisconnect, getFirestore, doc, setDoc, getDoc };
+        window.fb = { initializeApp, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut, getDatabase, ref, set, onValue, update, onDisconnect, getFirestore, doc, setDoc, getDoc };
     </script>
 
     <script src="game.js"></script>
