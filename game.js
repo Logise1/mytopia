@@ -103,6 +103,24 @@ const tileAssets = {
 
 const mapSize = 100;
 const mapData = [];
+const treeData = []; // Guardar posiciones de árboles
+const treeAsset = new Image();
+let treeShadowCanvas = null;
+
+// Configuración de Hitbox de Árbol (para ajustes fáciles)
+const treeHitbox = {
+    xRel: 32,
+    yRel: 45,
+    w: 110,
+    h: 30
+};
+
+// Semilla para aleatoriedad consistente
+let seed = 42;
+function seededRandom() {
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+}
 
 // Multiplayer
 const multiplayer = {
@@ -110,7 +128,6 @@ const multiplayer = {
     userId: null,
     username: "",
     lastSend: 0,
-    sendInterval: 500, // 0.5s entre ráfagas
     moveBuffer: [] // Acumular movimientos para enviar
 };
 
@@ -131,12 +148,12 @@ async function initFirebase() {
         if (user) {
             multiplayer.userId = user.uid;
             multiplayer.username = user.displayName;
-            
+
             document.getElementById('auth-menu').classList.add('hidden');
             document.getElementById('logout-btn').classList.remove('hidden');
             skinMenu.classList.remove('hidden');
             gameState = 'customizing';
-            
+
             // Intentar recuperar el color guardado previamente
             try {
                 const docSnap = await fb.getDoc(fb.doc(fs, "users", user.uid));
@@ -144,8 +161,8 @@ async function initFirebase() {
                     skinColor = docSnap.data().skin;
                     if (tileAssets && tileAssets.isLoaded) processAllAnimations(skinColor);
                 }
-            } catch(e) {}
-            
+            } catch (e) { }
+
             startSync();
         } else {
             multiplayer.userId = null;
@@ -210,18 +227,18 @@ function setupAuthListeners() {
 
 function startSync() {
     const playersRef = fb.ref(db, 'players');
-    
+
     // Escuchar a otros
     fb.onValue(playersRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
-        
+
         for (let uid in data) {
             if (uid === multiplayer.userId) continue;
-            
+
             if (!multiplayer.players[uid]) {
-                multiplayer.players[uid] = { 
-                    x: data[uid].x, y: data[uid].y, 
+                multiplayer.players[uid] = {
+                    x: data[uid].x, y: data[uid].y,
                     targetX: data[uid].x, targetY: data[uid].y,
                     username: data[uid].username,
                     skin: data[uid].skin || '#ffdbac',
@@ -247,11 +264,28 @@ function startSync() {
 
 function sendMovement() {
     if (!multiplayer.userId || gameState !== 'playing') return;
-    
-    // Solo enviar cada 0.5s como pidió el usuario (simulando ráfaga o límite)
+
+    // Configuración de intervalos
+    const NORMAL_INTERVAL = 500;   // 0.5s (con gente cerca)
+    const IDLE_INTERVAL = 5000;    // 5s (solo o lejos)
+    const NEAR_DISTANCE = 1200;    // Radio de "cercanía"
+
+    // Determinar si hay alguien cerca
+    let anyoneNear = false;
+    for (let uid in multiplayer.players) {
+        const p = multiplayer.players[uid];
+        const dist = Math.sqrt(Math.pow(p.x - player.x, 2) + Math.pow(p.y - player.y, 2));
+        if (dist < NEAR_DISTANCE) {
+            anyoneNear = true;
+            break;
+        }
+    }
+
+    const currentInterval = (anyoneNear && Object.keys(multiplayer.players).length > 0) ? NORMAL_INTERVAL : IDLE_INTERVAL;
+
     const now = performance.now();
-    if (now - multiplayer.lastSend < multiplayer.sendInterval) return;
-    
+    if (now - multiplayer.lastSend < currentInterval) return;
+
     multiplayer.lastSend = now;
     const myRef = fb.ref(db, `players/${multiplayer.userId}`);
     fb.update(myRef, {
@@ -279,9 +313,13 @@ window.onload = async () => {
         for (let x = 0; x < mapSize; x++) {
             const dx = x - centerX;
             const dy = y - centerY;
-            
+
             if (Math.abs(dx) < radius && Math.abs(dy) < radius) {
                 mapData[y][x] = 'grass';
+                // Poner árboles al azar solo en grass, con semilla (Menos cantidad: 5%)
+                if (seededRandom() < 0.05 && Math.abs(dx) > 1 && Math.abs(dy) > 1) {
+                    treeData.push({ x, y });
+                }
             } else if (Math.abs(dx) === radius && Math.abs(dy) < radius) {
                 mapData[y][x] = dx < 0 ? 'grass-sand-left' : 'grass-sand-right';
             } else if (Math.abs(dy) === radius && Math.abs(dx) < radius) {
@@ -320,7 +358,7 @@ window.onload = async () => {
     // 3. Listeners
     window.addEventListener('keydown', e => keys[e.code] = true);
     window.addEventListener('keyup', e => keys[e.code] = false);
-    
+
     canvas.addEventListener('mousemove', (e) => {
         const rect = canvas.getBoundingClientRect();
         mouseX = e.clientX - rect.left;
@@ -334,18 +372,22 @@ window.onload = async () => {
 async function loadTileAssets() {
     const promises = [];
     const files = [
-        'grass', 'sand', 
+        'grass', 'sand',
         'grass-sand-up', 'grass-sand-down', 'grass-sand-left', 'grass-sand-right',
         'grass-sand-diagonal'
     ];
-    
+
     files.forEach(name => {
         // Usamos diagonal1 como la base para todas las rotaciones
         const fileName = name === 'grass-sand-diagonal' ? 'grass-sand-diagonal1' : name;
         tileAssets[name].src = `sprites/tiles/${fileName}.png`;
         promises.push(new Promise(res => tileAssets[name].onload = res));
     });
-    
+
+    // Cargar árbol
+    treeAsset.src = 'sprites/textures/tree.png';
+    promises.push(new Promise(res => treeAsset.onload = res));
+
     await Promise.all(promises);
     tileAssets.isLoaded = true;
 }
@@ -519,10 +561,44 @@ function update(dt) {
     player.x += player.vx * dt;
     player.y += player.vy * dt;
 
+    // --- COLISIÓN CON ÁRBOLES ---
+    const pCenterX = player.x + player.width / 2;
+    const pBaseY = player.y + player.height - 4; // Punto exacto de los pies
+
+    treeData.forEach(tree => {
+        const tX = tree.x * 64 + treeHitbox.xRel;
+        const tY = tree.y * 64 + treeHitbox.yRel;
+
+        // --- HITBOX RECTANGULAR ESTABLE (MTV) ---
+        const halfW = treeHitbox.w / 2;
+        const halfH = treeHitbox.h / 2;
+
+        // Pies del jugador ( hitbox de 10x8 centrada en pCenterX, pBaseY )
+        const pWh = 5; // Half width
+        const pHh = 4; // Half height
+
+        const dx = pCenterX - tX;
+        const dy = pBaseY - tY;
+        
+        const overlapX = (halfW + pWh) - Math.abs(dx);
+        const overlapY = (halfH + pHh) - Math.abs(dy);
+
+        if (overlapX > 0 && overlapY > 0) {
+            // Resolver por el eje de menor penetración para evitar saltos locos
+            if (overlapX < overlapY) {
+                player.x += (dx > 0 ? overlapX : -overlapX);
+                player.vx = 0;
+            } else {
+                player.y += (dy > 0 ? overlapY : -overlapY);
+                player.vy = 0;
+            }
+        }
+    });
+
     // Actualizar Cámara de forma SUAVE (Lerp)
     const targetCamX = player.x - canvas.width / 2 + player.width / 2;
     const targetCamY = player.y - canvas.height / 2 + player.height / 2;
-    
+
     // Si la cámara acaba de aparecer o está muy lejos, cortamos directamente
     if (Math.abs(targetCamX - camera.x) > 1000) {
         camera.x = targetCamX;
@@ -558,7 +634,7 @@ function drawTiles() {
         for (let tx = startX; tx < endX; tx++) {
             const mx = ((tx % mapSize) + mapSize) % mapSize;
             const my = ((ty % mapSize) + mapSize) % mapSize;
-            
+
             let tileType = mapData[my][mx];
             const drawX = tx * tileSize - camera.x;
             const drawY = ty * tileSize - camera.y;
@@ -594,6 +670,179 @@ function drawTiles() {
     }
 }
 
+function getSunlightTransform() {
+    let timeOffset = worldTime - 12; 
+    if (timeOffset < -12) timeOffset += 24;
+    if (timeOffset > 12) timeOffset -= 24;
+
+    const skewAmount = (timeOffset / 6); 
+    const scaleAmount = 0.15 + (Math.abs(timeOffset) / 12) * 0.5;
+
+    let alpha = 0.5;
+    if (worldTime > 20 || worldTime < 4) alpha = 0.2; 
+    else if (worldTime >= 10 && worldTime <= 14) alpha = 0.6; 
+
+    return { skewAmount, scaleAmount, alpha };
+}
+
+function drawTreeShadows() {
+    if (!tileAssets.isLoaded || !treeAsset.complete || treeAsset.naturalWidth === 0) return;
+    const tileSize = 64;
+
+    if (!treeShadowCanvas) {
+        treeShadowCanvas = document.createElement('canvas');
+        treeShadowCanvas.width = treeAsset.naturalWidth;
+        treeShadowCanvas.height = treeAsset.naturalHeight;
+        const sCtx = treeShadowCanvas.getContext('2d');
+        sCtx.drawImage(treeAsset, 0, 0);
+        sCtx.globalCompositeOperation = 'source-in';
+        sCtx.fillStyle = '#0f0514'; 
+        sCtx.fillRect(0, 0, treeShadowCanvas.width, treeShadowCanvas.height);
+    }
+
+    const sun = getSunlightTransform();
+
+    ctx.save();
+    ctx.globalAlpha = sun.alpha;
+
+    treeData.forEach(tree => {
+        const drawX = tree.x * tileSize - camera.x;
+        const drawY = tree.y * tileSize - camera.y;
+
+        if (drawX > -tileSize * 6 && drawX < canvas.width + tileSize * 6 && drawY > -tileSize * 6 && drawY < canvas.height + tileSize * 6) {
+            const treeW = tileSize * 2.5;
+            const treeH = tileSize * 3.0; 
+            
+            const baseX = drawX + treeHitbox.xRel;
+            const baseY = drawY + treeHitbox.yRel + treeHitbox.h / 2;
+            
+            ctx.save();
+            ctx.translate(baseX, baseY);
+            ctx.transform(1, 0, sun.skewAmount, sun.scaleAmount, 0, 0);
+
+            const imgLeft = (drawX - (treeW - tileSize) / 2) - baseX;
+            const imgTop = (drawY - (treeH - tileSize)) - baseY;
+
+            ctx.drawImage(treeShadowCanvas, imgLeft, imgTop, treeW, treeH);
+            ctx.restore();
+        }
+    });
+
+    ctx.restore();
+}
+
+function drawPlayerShadows() {
+    const sun = getSunlightTransform();
+    const shadowColor = '#0f0514'; // Mismo tono que el árbol
+    
+    // Reunimos a todos en un array
+    const entities = [
+        { ...player, isLocal: true, screenX: player.x - camera.x, screenY: player.y - camera.y, u_uid: 'local' }
+    ];
+    for (let uid in multiplayer.players) {
+        const p = multiplayer.players[uid];
+        entities.push({
+            ...p, isLocal: false, 
+            screenX: p.x - camera.x, screenY: p.y - camera.y,
+            width: player.width, height: player.height,
+            direction: p.direction || player.direction,
+            u_uid: uid
+        });
+    }
+
+    ctx.save();
+    ctx.globalAlpha = sun.alpha;
+
+    entities.forEach(ent => {
+        if (ent.screenX < -100 || ent.screenX > canvas.width + 100 || ent.screenY < -100 || ent.screenY > canvas.height + 100) return;
+
+        const anim = player.animations[ent.direction];
+        const frameData = anim ? anim[Math.floor(ent.frame || 0)] : null;
+
+        let scaleX = 1; let scaleY = 1;
+        let baseHeight = ent.height; let baseWidth = ent.width;
+        let jumpOffset = 0;
+
+        if (frameData && frameData.original) {
+            const aspect = frameData.original.width / frameData.original.height;
+            baseWidth = baseHeight * aspect;
+        }
+
+        if (ent.isLocal) {
+            if (ent.isMoving) {
+                const cycleProgress = (ent.frame + (ent.frameTimer / ent.frameDuration)) / 6;
+                const bounce = Math.abs(Math.sin(cycleProgress * Math.PI * 2));
+                jumpOffset = -bounce * 10;
+                const s = (bounce - 0.5) * 0.1;
+                scaleY = 1 + s; scaleX = 1 - s;
+            } else {
+                const breath = Math.sin((ent.idleTime || 0) * 3);
+                scaleY = 1 + breath * 0.02; scaleX = 1 - breath * 0.01;
+            }
+        }
+
+        const drawW = baseWidth * scaleX;
+        const drawH = baseHeight * scaleY;
+        const drawX = ent.screenX + (ent.width - drawW) / 2;
+        const drawY = ent.screenY + (ent.height - drawH) + jumpOffset;
+
+        if (frameData && frameData.processed) {
+            // Silhouette
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = frameData.processed.width;
+            tempCanvas.height = frameData.processed.height;
+            const tCtx = tempCanvas.getContext('2d');
+            tCtx.drawImage(frameData.processed, 0, 0);
+            tCtx.globalCompositeOperation = 'source-in';
+            tCtx.fillStyle = shadowColor;
+            tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+            const baseX = drawX + drawW / 2;
+            const baseY = ent.screenY + ent.height;
+
+            ctx.save();
+            ctx.translate(baseX, baseY);
+            ctx.transform(1, 0, sun.skewAmount, sun.scaleAmount, 0, 0);
+            
+            const imgLeft = drawX - baseX;
+            const imgTop = drawY - baseY;
+            
+            ctx.drawImage(tempCanvas, imgLeft, imgTop, drawW, drawH);
+            ctx.restore();
+        } else {
+            // Fallback
+            ctx.fillStyle = shadowColor;
+            ctx.beginPath();
+            ctx.ellipse(ent.screenX + ent.width / 2, ent.screenY + ent.height, 22, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    });
+    ctx.restore();
+}
+
+function drawSingleTree(tree, tileSize) {
+    if (!tileAssets.isLoaded) return;
+
+    const drawX = tree.x * tileSize - camera.x;
+    const drawY = tree.y * tileSize - camera.y;
+
+    // Solo dibujar si está cerca de la pantalla
+    if (drawX > -tileSize * 4 && drawX < canvas.width + tileSize * 4 && drawY > -tileSize * 6 && drawY < canvas.height + tileSize * 4) {
+        const treeW = tileSize * 2.5;
+        const treeH = tileSize * 3.0;
+        ctx.drawImage(treeAsset, drawX - (treeW - tileSize) / 2, drawY - (treeH - tileSize), treeW, treeH);
+
+        // Visualizar Hitbox si está en modo Debug
+        if (debug.active) {
+            const hX = drawX + treeHitbox.xRel;
+            const hY = drawY + treeHitbox.yRel;
+            ctx.strokeStyle = "red";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(hX - treeHitbox.w / 2, hY - treeHitbox.h / 2, treeHitbox.w, treeHitbox.h);
+        }
+    }
+}
+
 function drawPlayer() {
     const anim = player.animations[player.direction];
     const frameData = anim ? anim[player.frame] : null;
@@ -604,7 +853,7 @@ function drawPlayer() {
     let jumpOffset = 0;
     let scaleX = 1;
     let scaleY = 1;
-    
+
     // Mantener relación de aspecto original
     let baseHeight = player.height;
     let baseWidth = player.width;
@@ -617,11 +866,11 @@ function drawPlayer() {
     if (player.isMoving) {
         const cycleProgress = (player.frame + (player.frameTimer / player.frameDuration)) / 6;
         const bounce = Math.abs(Math.sin(cycleProgress * Math.PI * 2));
-        
+
         jumpOffset = -bounce * 10; // Un poco menos de salto
-        
+
         // Squash and Stretch más sutil
-        const s = (bounce - 0.5) * 0.1; 
+        const s = (bounce - 0.5) * 0.1;
         scaleY = 1 + s;
         scaleX = 1 - s;
     } else {
@@ -638,46 +887,17 @@ function drawPlayer() {
     const drawX = screenX + (player.width - drawW) / 2;
     const drawY = screenY + (player.height - drawH) + jumpOffset;
 
-    // --- DIBUJAR SOMBRA ---
-    ctx.save();
-    ctx.globalAlpha = 0.25;
-    const shadowColor = '#1a0d16'; // Color oscuro para la sombra
-    
-    if (frameData && frameData.processed) {
-        // Crear silueta para la sombra
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = frameData.processed.width;
-        tempCanvas.height = frameData.processed.height;
-        const tCtx = tempCanvas.getContext('2d');
-        tCtx.drawImage(frameData.processed, 0, 0);
-        tCtx.globalCompositeOperation = 'source-in';
-        tCtx.fillStyle = shadowColor;
-        tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-        
-        // Dibujamos la sombra desplazada y aplastada en el suelo
-        const shadowOffsetW = drawW * 1.1;
-        const shadowOffsetH = drawH * 0.3;
-        ctx.drawImage(tempCanvas, drawX + 12, screenY + player.height - 10, shadowOffsetW, shadowOffsetH);
-    } else {
-        // Fallback círculo si no hay sprite
-        ctx.fillStyle = shadowColor;
-        ctx.beginPath();
-        ctx.ellipse(screenX + player.width/2 + 8, screenY + player.height - 4, 22, 10, 0, 0, Math.PI * 2);
-        ctx.fill();
-    }
-    ctx.restore();
-
-    // --- DIBUJAR PERSONAJE ---
-    if (!frameData || !frameData.processed) {
-        ctx.fillStyle = skinColor;
-        ctx.beginPath();
-        ctx.arc(screenX + player.width / 2, screenY + player.height / 2 + jumpOffset, 20 * scaleX, 0, Math.PI * 2);
-        ctx.fill();
-        return;
-    }
+    // -- SOMBRA RAYTRACING FUE MOVIDA A drawPlayerShadows() --
 
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(frameData.processed, drawX, drawY, drawW, drawH);
+
+    // Visualizar Hitbox del Jugador si está en modo Debug
+    if (debug.active) {
+        ctx.strokeStyle = "cyan";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(screenX + player.width / 2 - 5, screenY + player.height - 8, 10, 8); // Punto de colisión (pies)
+    }
 
     // Dibujar nombre local sobre la cabeza
     if (multiplayer.username) {
@@ -705,7 +925,7 @@ function drawHUD() {
     const barY = 25;
     const barW = 200;
     const barH = 30;
-    
+
     // Borde Exterior Oscuro (5d3350)
     ctx.fillStyle = '#5d3350';
     ctx.fillRect(barX, barY, barW, barH);
@@ -726,7 +946,7 @@ function drawHUD() {
     }
 
     // 3. (Tablón ahora en CSS)
-    
+
     // Muestra de Debug si está activo
     if (debug.active) {
         drawDebugInfo();
@@ -741,7 +961,7 @@ function drawSinglePupil(ex, ey, pupilSize) {
     const angle = Math.atan2(dy, dx);
     const maxMove = pupilSize * 0.4; // Reducido para que no se mueva tanto
     const dist = Math.min(maxMove, Math.hypot(dx, dy) / 25); // Movimiento más corto y sutil
-    
+
     const pupX = ex + Math.cos(angle) * dist;
     const pupY = ey + Math.sin(angle) * dist;
 
@@ -759,92 +979,89 @@ function gameLoop(currentTime) {
     lastTime = currentTime;
 
     update(deltaTime);
-    
-    // Efecto de movimiento/giro aleatorio de vez en cuando
-    if (Math.random() < 0.01) {
-        hudRotationTarget = (Math.random() - 0.5) * 0.05; // Pequeño giro
+
+    // Actualizar otros jugadores (LERP y Anim)
+    for (let uid in multiplayer.players) {
+        const p = multiplayer.players[uid];
+        p.x += (p.targetX - p.x) * 10 * deltaTime;
+        p.y += (p.targetY - p.y) * 10 * deltaTime;
+        if (p.isMoving) p.frame = (p.frame + 10 * deltaTime) % totalFrames;
+        else p.frame = 0;
     }
-    if (Math.random() < 0.005) {
-        hudRotationTarget = 0; // Vuelve al centro
-    }
-    
+
     if (gameState === 'playing') {
-        if (player.isMoving) {
-            stats.energy -= 5 * deltaTime;
-        } else {
-            stats.energy += 2 * deltaTime;
-        }
+        if (player.isMoving) stats.energy -= 5 * deltaTime;
+        else stats.energy += 2 * deltaTime;
         stats.energy = Math.max(0, Math.min(100, stats.energy));
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawTiles();
-    
-    // Dibujar otros jugadores
-    drawOtherPlayers();
-    
-    drawPlayer();
 
-    // Sincronizar movimiento con Firebase (8fps aprox / 0.5s packets)
-    sendMovement();
+    // Dibujar el sistema de Sombras Raytracing primero para que se proyecten en el suelo
+    drawTreeShadows();
+    drawPlayerShadows();
 
-    // --- EFECTO DÍA/NOCHE (Overlay de oscuridad) ---
+    // --- SISTEMA DE ORDENACIÓN (Y-SORTING) ---
+    const renderList = [];
+
+    // 1. Jugador Local
+    renderList.push({ y: player.y + player.height, draw: () => drawPlayer() });
+
+    // 2. Otros Jugadores
+    for (let uid in multiplayer.players) {
+        renderList.push({ y: multiplayer.players[uid].y + player.height, draw: () => drawSingleOtherPlayer(uid) });
+    }
+
+    // 3. Árboles (Ordenamos por la base inferior de su hitbox para que sea perfecto)
+    treeData.forEach(tree => {
+        const sortingY = tree.y * 64 + (treeHitbox.yRel + treeHitbox.h / 2);
+        renderList.push({ y: sortingY, draw: () => drawSingleTree(tree, 64) });
+    });
+
+    // Ordenar y dibujar (Capa de profundidad)
+    renderList.sort((a, b) => a.y - b.y);
+    renderList.forEach(item => item.draw());
+
+    // Luces y Efectos
     applyDayNightEffect();
-
     drawHUD();
 
-    if (debug.active) updateDebugPanel();
+    // Sincronización
+    sendMovement();
 
+    if (debug.active) updateDebugPanel();
     requestAnimationFrame(gameLoop);
 }
 
-function drawOtherPlayers() {
-    for (let uid in multiplayer.players) {
-        const p = multiplayer.players[uid];
-        
-        // Lerp para suavizado (8fps a 60fps)
-        p.x += (p.targetX - p.x) * 0.1;
-        p.y += (p.targetY - p.y) * 0.1;
+function drawSingleOtherPlayer(uid) {
+    const p = multiplayer.players[uid];
+    const screenX = p.x - camera.x;
+    const screenY = p.y - camera.y;
 
-        const screenX = p.x - camera.x;
-        const screenY = p.y - camera.y;
+    if (screenX < -100 || screenX > canvas.width + 100 || screenY < -100 || screenY > canvas.height + 100) return;
 
-        // Solo dibujar si está en pantalla
-        if (screenX < -100 || screenX > canvas.width + 100 || screenY < -100 || screenY > canvas.height + 100) continue;
+    // Dibujar nombre
+    ctx.fillStyle = "white";
+    ctx.font = "bold 14px Segoe UI";
+    ctx.textAlign = "center";
+    ctx.fillText(p.username, screenX + player.width / 2, screenY - 10);
 
-        // Dibujar nombre
-        ctx.fillStyle = "white";
-        ctx.font = "bold 14px Segoe UI";
-        ctx.textAlign = "center";
-        ctx.fillText(p.username, screenX + player.width / 2, screenY - 10);
+    const anim = player.animations[p.direction];
+    const frameData = anim ? anim[Math.floor(p.frame || 0)] : null;
 
-        // Dibujar sprite (usamos la misma lógica que drawPlayer pero simplificada)
-        const anim = player.animations[p.direction];
-        const frameData = anim ? anim[p.frame] : null;
-
-        if (frameData && frameData.processed) {
-            ctx.drawImage(frameData.processed, screenX, screenY, player.width, player.height);
-        } else {
-            ctx.fillStyle = p.skin;
-            ctx.beginPath();
-            ctx.arc(screenX + player.width / 2, screenY + player.height / 2, 20, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        
-        // Animación simple para otros
-        if (p.isMoving) {
-            p.frame = (p.frame + 0.1) % totalFrames;
-        } else {
-            p.frame = 0;
-        }
+    if (frameData && frameData.processed) {
+        ctx.drawImage(frameData.processed, screenX, screenY, player.width, player.height);
+    } else {
+        ctx.fillStyle = p.skin;
+        ctx.beginPath();
+        ctx.arc(screenX + player.width / 2, screenY + player.height / 2, 20, 0, Math.PI * 2);
+        ctx.fill();
     }
 }
 
 function applyDayNightEffect() {
     let opacity = 0;
-    
-    // Curva de oscuridad: 0 (día) a 0.6 (noche cerrada)
-    // Atardecer: 18:00 a 21:00, Amanecer: 05:00 a 08:00
     if (worldTime >= 18 && worldTime <= 21) {
         opacity = ((worldTime - 18) / 3) * 0.6;
     } else if (worldTime > 21 || worldTime < 5) {
@@ -880,7 +1097,7 @@ function createDebugPanel() {
         border: 1px solid #0f0; border-radius: 5px; z-index: 1000;
         pointer-events: auto;
     `;
-    
+
     const controls = [
         { label: 'Aceleración', key: 'speed', min: 0, max: 5000, step: 100 },
         { label: 'Vel Máx', key: 'maxSpeed', min: 0, max: 2000, step: 50 },
@@ -892,7 +1109,7 @@ function createDebugPanel() {
     controls.forEach(c => {
         const div = document.createElement('div');
         div.style.marginBottom = '5px';
-        
+
         let initialVal;
         if (c.key === 'worldTime') initialVal = worldTime;
         else initialVal = (c.obj || player)[c.key];
@@ -906,7 +1123,7 @@ function createDebugPanel() {
     });
 
     document.body.appendChild(debug.panel);
-    
+
     window.updateDebugValue = (key, val, label) => {
         const value = parseFloat(val);
         if (key === 'worldTime') worldTime = value;
@@ -916,12 +1133,7 @@ function createDebugPanel() {
     };
 }
 
-function updateDebugPanel() {
-    // Info adicional que solo se lee
-    if (debug.active) {
-        // Podríamos añadir FPS aquí
-    }
-}
+function updateDebugPanel() { }
 
 function drawDebugInfo() {
     ctx.fillStyle = 'rgba(0, 255, 0, 0.7)';
@@ -931,7 +1143,6 @@ function drawDebugInfo() {
     ctx.fillText(`Vel X: ${player.vx.toFixed(0)} Y: ${player.vy.toFixed(0)}`, 10, canvas.height - 60);
 }
 
-// Añadir tecla 'P' para debug (antes F3)
 window.addEventListener('keydown', e => {
     if (e.code === 'KeyP') {
         e.preventDefault();
