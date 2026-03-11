@@ -12,6 +12,21 @@ canvas.height = 600;
 // Estado del juego
 let gameState = 'intro';
 let skinColor = '#ffdbac';
+let mouseX = 0;
+let mouseY = 0;
+
+// Stats del Jugador
+const stats = {
+    energy: 100,
+    mood: 1, // Basado en HUD 1-8
+    health: 100
+};
+
+// Assets HUD
+const hudAssets = {
+    states: [],
+    pupil: new Image()
+};
 
 // Delta Time
 let lastTime = performance.now();
@@ -23,8 +38,8 @@ const player = {
     y: 0,
     vx: 0, // Velocidad actual en X
     vy: 0, // Velocidad actual en Y
-    speed: 1500, // Aceleración (pixeles por segundo²)
-    maxSpeed: 400, // Velocidad máxima
+    speed: 1800, // Aceleración aumentada
+    maxSpeed: 500, // Velocidad máxima aumentada
     friction: 0.9, // Cuanto más bajo, más rápido frena
     width: 64,
     height: 64,
@@ -64,16 +79,41 @@ window.onload = async () => {
         skinMenu.classList.remove('hidden');
     }, 500);
 
-    // 2. Cargar y procesar todos los sprites
-    await loadAllAnimations();
+    // 2. Cargar Assets
+    await Promise.all([
+        loadAllAnimations(),
+        loadHUDAssets()
+    ]);
 
-    // 3. Listeners teclado
+    // 3. Listeners
     window.addEventListener('keydown', e => keys[e.code] = true);
     window.addEventListener('keyup', e => keys[e.code] = false);
+    
+    // Seguimiento de mouse para el HUD
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouseX = e.clientX - rect.left;
+        mouseY = e.clientY - rect.top;
+    });
 
     // 4. Game loop
     requestAnimationFrame(gameLoop);
 };
+
+async function loadHUDAssets() {
+    hudAssets.pupil.src = 'sprites/hud/pupila.svg';
+    const promises = [];
+    
+    for (let i = 1; i <= 8; i++) {
+        const img = new Image();
+        const suffix = i === 1 ? '' : i;
+        img.src = `sprites/hud/hud${suffix}.svg`;
+        promises.push(new Promise(res => img.onload = res));
+        hudAssets.states[i-1] = img;
+    }
+    
+    return Promise.all(promises);
+}
 
 async function loadAllAnimations() {
     const loadPromises = [];
@@ -268,40 +308,117 @@ function drawPlayer() {
     const anim = player.animations[player.direction];
     const frameData = anim ? anim[player.frame] : null;
 
-    // Posición del personaje en pantalla (siempre centrado por la cámara)
     const screenX = player.x - camera.x;
     const screenY = player.y - camera.y;
 
-    // Saltitos al caminar (solo si se mueve)
     let jumpOffset = 0;
+    let scaleX = 1;
+    let scaleY = 1;
+
     if (player.isMoving) {
-        // Usamos el tiempo para un rebote fluido
-        jumpOffset = -Math.abs(Math.sin(performance.now() * 0.015)) * 8;
+        // Sincronizamos el rebote con el ciclo de 6 frames (2 botes por ciclo completo)
+        const cycleProgress = (player.frame + (player.frameTimer / player.frameDuration)) / 6;
+        const bounce = Math.abs(Math.sin(cycleProgress * Math.PI * 2)); // Dos rebotes rítmicos
+        
+        jumpOffset = -bounce * 12;
+        
+        // Squash and Stretch: Se estira en el aire y se aplasta al caer
+        const s = (bounce - 0.5) * 0.15; // Factor de deformación
+        scaleY = 1 + s;
+        scaleX = 1 - s;
     }
+
+    const drawW = player.width * scaleX;
+    const drawH = player.height * scaleY;
+    // Ajustar posición para que la base del personaje esté en el suelo
+    const drawX = screenX + (player.width - drawW) / 2;
+    const drawY = screenY + (player.height - drawH) + jumpOffset;
 
     if (!frameData || !frameData.processed) {
         ctx.fillStyle = skinColor;
         ctx.beginPath();
-        ctx.arc(screenX + player.width / 2, screenY + player.height / 2 + jumpOffset, 20, 0, Math.PI * 2);
+        ctx.arc(screenX + player.width / 2, screenY + player.height / 2 + jumpOffset, 20 * scaleX, 0, Math.PI * 2);
         ctx.fill();
         return;
     }
 
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(frameData.processed, screenX, screenY + jumpOffset, player.width, player.height);
+    ctx.drawImage(frameData.processed, drawX, drawY, drawW, drawH);
+}
+
+function drawHUD() {
+    if (hudAssets.states.length < 8) return;
+
+    // 1. Elegir estado basado en energía
+    const stateIndex = Math.floor((stats.energy / 100.1) * 8);
+    const mainHUD = hudAssets.states[stateIndex] || hudAssets.states[0];
+
+    // 2. HUD Gigante (Ocupa casi toda la pantalla como un marco)
+    const hudW = canvas.width;
+    const hudH = canvas.height;
+    const posX = 0;
+    const posY = 0;
+
+    // Dibujamos el HUD con algo de transparencia para que no tape todo el juego
+    ctx.globalAlpha = 0.8;
+    ctx.drawImage(mainHUD, posX, posY, hudW, hudH);
+    ctx.globalAlpha = 1.0;
+
+    // 3. Pupilas Gigantes
+    // Escalamos las coordenadas originales (44/150 y 106/150 para X, 38/75 para Y)
+    // al tamaño del canvas (800x600)
+    const eyeLX = hudW * (43 / 150); // Ajuste fino para los SVGs
+    const eyeLY = hudH * (38 / 75);
+    const eyeRX = hudW * (107 / 150);
+    const eyeRY = hudH * (38 / 75);
+
+    drawPupils(eyeLX, eyeLY, eyeRX, eyeRY, 30); // PupilSize 30 para que sean grandes
+}
+
+function drawPupils(lx, ly, rx, ry, pupilSize = 12) {
+    if (!hudAssets.pupil.complete) return;
+
+    const followMouse = (ex, ey) => {
+        const dx = mouseX - ex;
+        const dy = mouseY - ey;
+        const angle = Math.atan2(dy, dx);
+        // Distancia de movimiento de la pupila más grande para el HUD grande
+        const maxMove = pupilSize * 1.5; 
+        const dist = Math.min(maxMove, Math.hypot(dx, dy) / 15);
+        
+        return {
+            x: ex + Math.cos(angle) * dist,
+            y: ey + Math.sin(angle) * dist
+        };
+    };
+
+    const eyeL = followMouse(lx, ly);
+    const eyeR = followMouse(rx, ry);
+
+    ctx.drawImage(hudAssets.pupil, eyeL.x - pupilSize/2, eyeL.y - pupilSize/2, pupilSize, pupilSize);
+    ctx.drawImage(hudAssets.pupil, eyeR.x - pupilSize/2, eyeR.y - pupilSize/2, pupilSize, pupilSize);
 }
 
 function gameLoop(currentTime) {
-    // Calcular deltaTime en segundos
     deltaTime = (currentTime - lastTime) / 1000;
-    if (deltaTime > 0.1) deltaTime = 0.1; // Cap para evitar saltos bruscos
+    if (deltaTime > 0.1) deltaTime = 0.1;
     lastTime = currentTime;
 
     update(deltaTime);
+    
+    if (gameState === 'playing') {
+        if (player.isMoving) {
+            stats.energy -= 5 * deltaTime; // Gastar más energía al movernos
+        } else {
+            stats.energy += 2 * deltaTime; // Recuperar si estamos quietos
+        }
+        stats.energy = Math.max(0, Math.min(100, stats.energy));
+    }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawTiles();
     drawPlayer();
+    drawHUD();
 
     requestAnimationFrame(gameLoop);
 }
