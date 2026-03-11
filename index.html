@@ -11,7 +11,6 @@
 <body>
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
-        <button id="logout-btn" class="hidden">Cerrar sesión</button>
 
         <!-- Menú de Autenticación -->
         <div id="auth-menu">
@@ -40,6 +39,32 @@
                 <button class="color-btn" style="background-color: #2b1d0e;" data-color="#2b1d0e"></button>
             </div>
             <button id="start-game">¡Listo!</button>
+        </div>
+    </div>
+
+    <button id="logout-btn" class="hidden">Cerrar sesión</button>
+
+    <!-- UI de Viaje -->
+    <div id="travel-menu" class="hidden">
+        <div id="travel-content">
+            <h2 id="travel-title">¿A dónde quieres viajar?</h2>
+            
+            <div id="travel-selection">
+                <button id="go-home-btn" class="travel-btn">🏠 Mi Isla</button>
+                <h3>Islas de otros vecinos:</h3>
+                <div id="other-islands-list"></div>
+                <button id="close-travel-btn" class="close-btn">Cancelar</button>
+            </div>
+
+            <div id="travel-progress-ui" class="hidden">
+                <h2>Viajando... <span class="emoji">✈️</span></h2>
+                <div class="news-ticker">
+                    <p>Noticias de Mytopia: ¡Se han avistado peces nuevos en el este!</p>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="flight-bar"></div>
+                </div>
+            </div>
         </div>
     </div>
 

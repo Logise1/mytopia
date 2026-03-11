@@ -45,6 +45,17 @@ const hudAssets = {
     tablon: new Image(),
     pupil: new Image(),
     cuts: new Image(),
+    clock1: new Image(),
+    clock2: new Image(),
+    costume1: new Image(),
+    eye1: new Image(),
+    eye2: new Image(),
+    transition1: new Image(),
+    transition2: new Image(),
+    transition3: new Image(),
+    transition4: new Image(),
+    transition5: new Image(),
+    transition6: new Image(),
     isLoaded: false
 };
 
@@ -94,11 +105,17 @@ const keys = {};
 const tileAssets = {
     grass: new Image(),
     sand: new Image(),
+    water: new Image(),
     'grass-sand-up': new Image(),
     'grass-sand-down': new Image(),
     'grass-sand-left': new Image(),
     'grass-sand-right': new Image(),
     'grass-sand-diagonal': new Image(),
+    'wave1': new Image(),
+    'wave2': new Image(),
+    'wave3': new Image(),
+    'wave4': new Image(),
+    'wavebig': new Image(),
     isLoaded: false
 };
 
@@ -107,6 +124,12 @@ const mapData = [];
 const treeData = []; // Guardar posiciones de árboles
 const treeAsset = new Image();
 let treeShadowCanvas = null;
+
+let currentIsland = 'home'; 
+let isTraveling = false;
+let travelTimer = 0;
+const TRAVEL_TIME = 30; // Real life 30s
+let planeX = 0, planeY = 0;
 
 // Configuración de Hitbox de Árbol (para ajustes fáciles)
 const treeHitbox = {
@@ -157,17 +180,25 @@ async function initFirebase() {
 
             document.getElementById('auth-menu').classList.add('hidden');
             document.getElementById('logout-btn').classList.remove('hidden');
-            skinMenu.classList.remove('hidden');
-            gameState = 'customizing';
 
             // Intentar recuperar el color guardado previamente
+            let skinLoaded = false;
             try {
                 const docSnap = await fb.getDoc(fb.doc(fs, "users", user.uid));
                 if (docSnap.exists() && docSnap.data().skin) {
                     skinColor = docSnap.data().skin;
                     if (tileAssets && tileAssets.isLoaded) getSkinAnimations(skinColor);
+                    skinLoaded = true;
                 }
             } catch (e) { }
+
+            if (skinLoaded) {
+                skinMenu.classList.add('hidden');
+                gameState = 'playing';
+            } else {
+                skinMenu.classList.remove('hidden');
+                gameState = 'customizing';
+            }
 
             startSync();
         } else {
@@ -242,24 +273,31 @@ function startSync() {
         for (let uid in data) {
             if (uid === multiplayer.userId) continue;
 
+            const pData = data[uid];
+            // Solo ver a los que están en la misma isla
+            if (pData.island !== currentIsland) {
+                if (multiplayer.players[uid]) delete multiplayer.players[uid];
+                continue;
+            }
+
             if (!multiplayer.players[uid]) {
                 multiplayer.players[uid] = {
-                    x: data[uid].x, y: data[uid].y,
-                    targetX: data[uid].x, targetY: data[uid].y,
-                    username: data[uid].username,
-                    skin: data[uid].skin || '#ffdbac',
-                    direction: data[uid].direction || 'forward',
-                    isMoving: data[uid].isMoving || false,
+                    x: pData.x, y: pData.y,
+                    targetX: pData.x, targetY: pData.y,
+                    username: pData.username,
+                    skin: pData.skin || '#ffdbac',
+                    direction: pData.direction || 'forward',
+                    isMoving: pData.isMoving || false,
                     frame: 0
                 };
             } else {
                 // Interpolación
-                multiplayer.players[uid].targetX = data[uid].x;
-                multiplayer.players[uid].targetY = data[uid].y;
-                multiplayer.players[uid].direction = data[uid].direction;
-                multiplayer.players[uid].isMoving = data[uid].isMoving;
-                multiplayer.players[uid].skin = data[uid].skin;
-                if (data[uid].username) multiplayer.players[uid].username = data[uid].username;
+                multiplayer.players[uid].targetX = pData.x;
+                multiplayer.players[uid].targetY = pData.y;
+                multiplayer.players[uid].direction = pData.direction;
+                multiplayer.players[uid].isMoving = pData.isMoving;
+                multiplayer.players[uid].skin = pData.skin;
+                if (pData.username) multiplayer.players[uid].username = pData.username;
             }
         }
     });
@@ -310,40 +348,62 @@ window.onload = async () => {
     // 1. Firebase primero
     await initFirebase();
 
-    // 2. Generar isla
+    // 2. Generar isla con agua alrededor
     const centerX = mapSize / 2;
     const centerY = mapSize / 2;
-    const radius = 10;
+    const grassRadius = 14;
+    const sandRadius = 20; // Agua a 20 bloques
 
     for (let y = 0; y < mapSize; y++) {
         mapData[y] = [];
         for (let x = 0; x < mapSize; x++) {
             const dx = x - centerX;
             const dy = y - centerY;
+            const absDx = Math.abs(dx);
+            const absDy = Math.abs(dy);
 
-            if (Math.abs(dx) < radius && Math.abs(dy) < radius) {
+            if (absDx < grassRadius && absDy < grassRadius) {
                 mapData[y][x] = 'grass';
-                // Poner árboles al azar solo en grass, con semilla (Menos cantidad: 5%)
-                if (seededRandom() < 0.05 && Math.abs(dx) > 1 && Math.abs(dy) > 1) {
+                if (seededRandom() < 0.05 && absDx > 1 && absDy > 1 && !(dx === 2 && dy === grassRadius - 1)) {
                     treeData.push({ x, y });
                 }
-            } else if (Math.abs(dx) === radius && Math.abs(dy) < radius) {
+            } else if (absDx === grassRadius && absDy < grassRadius) {
                 mapData[y][x] = dx < 0 ? 'grass-sand-left' : 'grass-sand-right';
-            } else if (Math.abs(dy) === radius && Math.abs(dx) < radius) {
+            } else if (absDy === grassRadius && absDx < grassRadius) {
                 mapData[y][x] = dy < 0 ? 'grass-sand-up' : 'grass-sand-down';
-            } else if (dx === -radius && dy === -radius) {
-                mapData[y][x] = 'grass-sand-diagonal'; // Arriba Izquierda (TL)
-            } else if (dx === radius && dy === -radius) {
-                mapData[y][x] = 'grass-sand-diagonal_TR'; // Arriba Derecha
-            } else if (dx === radius && dy === radius) {
-                mapData[y][x] = 'grass-sand-diagonal_BR'; // Abajo Derecha
-            } else if (dx === -radius && dy === radius) {
-                mapData[y][x] = 'grass-sand-diagonal_BL'; // Abajo Izquierda
-            } else {
+            } else if (dx === -grassRadius && dy === -grassRadius) {
+                mapData[y][x] = 'grass-sand-diagonal';
+            } else if (dx === grassRadius && dy === -grassRadius) {
+                mapData[y][x] = 'grass-sand-diagonal_TR';
+            } else if (dx === grassRadius && dy === grassRadius) {
+                mapData[y][x] = 'grass-sand-diagonal_BR';
+            } else if (dx === -grassRadius && dy === grassRadius) {
+                mapData[y][x] = 'grass-sand-diagonal_BL';
+            } else if (absDx < sandRadius && absDy < sandRadius) {
                 mapData[y][x] = 'sand';
+            } else if (absDx === sandRadius && absDy < sandRadius) {
+                const wType = seededRandom() < 0.33 ? 'wave1' : (seededRandom() < 0.5 ? 'wave2' : 'wave3');
+                mapData[y][x] = dx < 0 ? wType + '_W' : wType + '_E';
+            } else if (absDy === sandRadius && absDx < sandRadius) {
+                const wType = seededRandom() < 0.33 ? 'wave1' : (seededRandom() < 0.5 ? 'wave2' : 'wave3');
+                mapData[y][x] = dy < 0 ? wType + '_N' : wType + '_S';
+            } else if (dx === -sandRadius && dy === -sandRadius) {
+                mapData[y][x] = 'wave4_TL';
+            } else if (dx === sandRadius && dy === -sandRadius) {
+                mapData[y][x] = 'wave4_TR';
+            } else if (dx === sandRadius && dy === sandRadius) {
+                mapData[y][x] = 'wave4_BR';
+            } else if (dx === -sandRadius && dy === sandRadius) {
+                mapData[y][x] = 'wave4_BL';
+            } else {
+                mapData[y][x] = seededRandom() < 0.05 ? 'wavebig' : 'water'; // Océano infinito
             }
         }
     }
+
+    // Ubicamos avión
+    planeX = centerX + 2;
+    planeY = centerY + grassRadius - 2;
 
     // 1. Iniciamos zoom-in
     setTimeout(() => {
@@ -379,14 +439,15 @@ window.onload = async () => {
 async function loadTileAssets() {
     const promises = [];
     const files = [
-        'grass', 'sand',
+        'grass', 'sand', 'water',
         'grass-sand-up', 'grass-sand-down', 'grass-sand-left', 'grass-sand-right',
-        'grass-sand-diagonal'
+        'grass-sand-diagonal',
+        'wave1', 'wave2', 'wave3', 'wave4', 'wavebig'
     ];
 
     files.forEach(name => {
-        // Usamos diagonal1 como la base para todas las rotaciones
-        const fileName = name === 'grass-sand-diagonal' ? 'grass-sand-diagonal1' : name;
+        let fileName = name;
+        if (name === 'grass-sand-diagonal') fileName = 'grass-sand-diagonal1';
         tileAssets[name].src = `sprites/tiles/${fileName}.png`;
         promises.push(new Promise(res => tileAssets[name].onload = res));
     });
@@ -409,7 +470,18 @@ async function loadHUDAssets() {
         life: 'life-happyness.svg',
         tablon: 'selecciontablon.svg',
         pupil: 'pupila.svg',
-        cuts: 'cuts.svg'
+        cuts: 'cuts.svg',
+        clock1: 'night/clock1.svg',
+        clock2: 'night/clock2.svg',
+        costume1: 'night/costume1.svg',
+        eye1: 'night/eye1.svg',
+        eye2: 'night/eye2.svg',
+        transition1: 'night/transition.svg',
+        transition2: 'night/transition2.svg',
+        transition3: 'night/transition3.svg',
+        transition4: 'night/transition4.svg',
+        transition5: 'night/transition5.svg',
+        transition6: 'night/transition6.svg'
     };
 
     for (const [key, filename] of Object.entries(files)) {
@@ -524,6 +596,17 @@ startBtn.addEventListener('click', () => {
 });
 
 function update(dt) {
+    // --- LÓGICA DE VIAJE ---
+    if (gameState === 'traveling') {
+        if (isTraveling && travelTimer > 0) {
+            travelTimer += dt;
+            let percent = (travelTimer / TRAVEL_TIME) * 100;
+            document.getElementById('flight-bar').style.width = percent + '%';
+            if (travelTimer >= TRAVEL_TIME) completeTravel();
+        }
+        return; // Evita actualizar físicas u otros controles mientras viajas
+    }
+
     if (gameState !== 'playing' && gameState !== 'customizing') return;
 
     let ax = 0;
@@ -643,6 +726,12 @@ function update(dt) {
         player.frame = 0; // Primer frame como posición de reposo (Idle en 1)
         player.idleTime = (player.idleTime || 0) + dt;
     }
+
+    // Interacción Avión
+    const distPlane = Math.hypot(player.x - (planeX * 64 + 32), player.y - (planeY * 64 + 32));
+    if (distPlane < 100 && !isTraveling && gameState === 'playing' && keys['Enter']) {
+        openTravelMenu();
+    }
 }
 
 function drawTiles() {
@@ -666,27 +755,47 @@ function drawTiles() {
                 let rotation = 0;
                 let finalType = tileType;
 
-                // Lógica de rotación para diagonales (giradas 180° extra por petición)
                 if (tileType.startsWith('grass-sand-diagonal')) {
                     finalType = 'grass-sand-diagonal';
                     rotation = Math.PI; // Base (Top-Left) girada 180
                     if (tileType.endsWith('_TR')) rotation = Math.PI * 1.5; // Top-Right (+90)
                     if (tileType.endsWith('_BR')) rotation = 0;             // Bottom-Right (+180)
                     if (tileType.endsWith('_BL')) rotation = Math.PI * 0.5; // Bottom-Left (+270)
+                } else if (tileType.startsWith('wave1') || tileType.startsWith('wave2') || tileType.startsWith('wave3')) {
+                    const parts = tileType.split('_');
+                    finalType = parts[0];
+                    const dir = parts[1];
+                    if (dir === 'S') rotation = 0;               // Arena arriba, agua abajo
+                    if (dir === 'W') rotation = Math.PI * 0.5;   // Arena derecha, agua izq (Esquivando CSS, rotación horaria de img base)
+                    if (dir === 'N') rotation = Math.PI;         // Arena abajo, agua arriba
+                    if (dir === 'E') rotation = Math.PI * 1.5;   // Arena izquierda, agua derecha
+                } else if (tileType.startsWith('wave4')) {
+                    finalType = 'wave4';
+                    const dir = tileType.split('_')[1];
+                    // 'wave4' base: Arena en esquina Top-Left. Corresponde a la esquina Bottom-Right exterior de la isla
+                    if (dir === 'BR') rotation = 0;             
+                    if (dir === 'BL') rotation = Math.PI * 0.5; 
+                    if (dir === 'TL') rotation = Math.PI;       
+                    if (dir === 'TR') rotation = Math.PI * 1.5; 
                 }
 
                 const img = tileAssets[finalType];
-                if (rotation !== 0) {
-                    ctx.save();
-                    ctx.translate(drawX + tileSize / 2, drawY + tileSize / 2);
-                    ctx.rotate(rotation);
-                    ctx.drawImage(img, -tileSize / 2, -tileSize / 2, tileSize, tileSize);
-                    ctx.restore();
+                if (img && img.complete && img.naturalWidth !== 0) {
+                    if (rotation !== 0) {
+                        ctx.save();
+                        ctx.translate(drawX + tileSize / 2, drawY + tileSize / 2);
+                        ctx.rotate(rotation);
+                        ctx.drawImage(img, -tileSize / 2, -tileSize / 2, tileSize, tileSize);
+                        ctx.restore();
+                    } else {
+                        ctx.drawImage(img, drawX, drawY, tileSize, tileSize);
+                    }
                 } else {
-                    ctx.drawImage(img, drawX, drawY, tileSize, tileSize);
+                     ctx.fillStyle = tileType.includes('grass') ? '#2d5a27' : ((tileType.includes('water') || tileType.includes('wave')) ? '#0f5e9c' : '#d2b48c');
+                     ctx.fillRect(drawX, drawY, tileSize, tileSize);
                 }
             } else {
-                ctx.fillStyle = tileType.includes('grass') ? '#2d5a27' : '#d2b48c';
+                ctx.fillStyle = tileType.includes('grass') ? '#2d5a27' : ((tileType.includes('water') || tileType.includes('wave')) ? '#0f5e9c' : '#d2b48c');
                 ctx.fillRect(drawX, drawY, tileSize, tileSize);
             }
         }
@@ -953,7 +1062,10 @@ function drawHUD() {
             dX = (canvas.width - dW) / 2;
         }
 
+        ctx.save();
+        ctx.globalAlpha = 0.5; // 50% de opacidad solicitada
         ctx.drawImage(hudAssets.cuts, dX, dY, dW, dH);
+        ctx.restore();
     }
 
     const isNight = worldTime >= 20 || worldTime <= 6;
@@ -1056,6 +1168,40 @@ function gameLoop(currentTime) {
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // --- MODO VIAJE ESPECIAL ---
+    if (gameState === 'traveling') {
+        // Cielo de viaje
+        ctx.fillStyle = worldTime >= 20 || worldTime <= 6 ? '#050528' : '#87CEEB';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Nubes o fondo
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.beginPath();
+        const cloudX = (performance.now() * 0.05) % (canvas.width + 400) - 200;
+        ctx.arc(cloudX, 150, 60, 0, Math.PI * 2);
+        ctx.arc(cloudX + 80, 150, 80, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Calcular posición del avión / transición
+        // Animado rápido cada 0.1s
+        const frameIndex = Math.floor(travelTimer * 10) % 6 + 1;
+        const flightImg = hudAssets['transition' + frameIndex];
+
+        if (flightImg && flightImg.complete) {
+            // El avión se mueve de izquierda a derecha durante los 30s
+            const flightX = (travelTimer / TRAVEL_TIME) * (canvas.width + 300) - 150;
+            const flightY = canvas.height / 2 - 100 + Math.sin(travelTimer * 2) * 20; // Movimiento ondulado
+            
+            // Dibujar grande!
+            ctx.drawImage(flightImg, flightX, flightY, 200, 200);
+        }
+
+        if (debug.active) updateDebugPanel();
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
     drawTiles();
 
     // Dibujar el sistema de Sombras Raytracing primero para que se proyecten en el suelo
@@ -1079,7 +1225,12 @@ function gameLoop(currentTime) {
         renderList.push({ y: sortingY, draw: () => drawSingleTree(tree, 64) });
     });
 
+    // 4. Avión
+    const airplaneY = planeY * 64 + 64;
+    renderList.push({ y: airplaneY, draw: () => drawAirplane(planeX * 64 - camera.x, planeY * 64 - camera.y) });
+
     // Ordenar y dibujar (Capa de profundidad)
+
     renderList.sort((a, b) => a.y - b.y);
     renderList.forEach(item => item.draw());
 
@@ -1161,7 +1312,99 @@ function applyDayNightEffect() {
     }
 }
 
+function drawAirplane(drawX, drawY) {
+    ctx.font = "80px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("🛩️", drawX + 32, drawY + 64);
+    
+    // Si estás muy cerca, muestra prompt
+    const distPlane = Math.hypot(player.x - (planeX * 64 + 32), player.y - (planeY * 64 + 32));
+    if (distPlane < 100 && gameState === 'playing' && !isTraveling) {
+        ctx.fillStyle = "white";
+        ctx.font = "bold 14px Segoe UI";
+        ctx.fillText("[ENTER] para Viajar", drawX + 32, drawY - 10);
+    }
+}
+
+// --- SISTEMA DE VIAJES ---
+function openTravelMenu() {
+    document.getElementById('travel-menu').classList.remove('hidden');
+    document.getElementById('travel-selection').classList.remove('hidden');
+    document.getElementById('travel-progress-ui').classList.add('hidden');
+    refreshOtherIslandsList();
+    
+    document.getElementById('go-home-btn').onclick = () => startTravel('home');
+    document.getElementById('close-travel-btn').onclick = () => {
+        document.getElementById('travel-menu').classList.add('hidden');
+    };
+}
+
+function refreshOtherIslandsList() {
+    const list = document.getElementById('other-islands-list');
+    list.innerHTML = '';
+    // Buscar usuarios únicos en el registro local
+    const uids = Object.keys(multiplayer.players);
+    if (uids.length === 0) list.innerHTML = '<p>No hay nadie más online ahora mismo.</p>';
+    
+    // Por motivos de la demo y Firebase en vivo, podríamos hacer una query a 'players', pero ya lo tenemos localmente si están en nuestra isla. Si están en otra isla, no los vemos en multiplayer.players por el filtrado.
+    // Cambiemos esto a consultar Firebase 'players' directo para ver todas las islas activas:
+    fb.getDoc(fb.doc(fs, "users", multiplayer.userId)) // (Como workaround para consultar usuarios, usaremos solo los reportados o uno manual).
+    // Mejor obtener directamente de realtime db
+    fb.onValue(fb.ref(db, 'players'), (snapshot) => {
+        const data = snapshot.val();
+        list.innerHTML = '';
+        if (!data) return;
+        
+        for (let uid in data) {
+            if (uid === multiplayer.userId) continue;
+            let btn = document.createElement('button');
+            btn.className = 'travel-btn';
+            btn.innerText = `🏝️ Isla de ${data[uid].username || 'Desconocido'}`;
+            btn.onclick = () => startTravel(data[uid].island === 'home' ? uid : data[uid].island);
+            list.appendChild(btn);
+        }
+    }, { onlyOnce: true });
+}
+
+function startTravel(targetId) {
+    if (targetIslandIsSame(targetId)) {
+        alert("¡Ya estás en esa isla!"); return;
+    }
+
+    targetTravelIsland = targetId;
+    isTraveling = true;
+    travelTimer = 0.01;
+    gameState = 'traveling';
+    
+    document.getElementById('travel-selection').classList.add('hidden');
+    document.getElementById('travel-progress-ui').classList.remove('hidden');
+    document.getElementById('flight-bar').style.width = '0%';
+}
+
+function targetIslandIsSame(targetId) {
+    if (currentIsland === 'home' && targetId === 'home') return true;
+    if (currentIsland === targetId) return true;
+    return false;
+}
+
+function completeTravel() {
+    isTraveling = false;
+    travelTimer = 0;
+    gameState = 'playing';
+    currentIsland = targetTravelIsland;
+    document.getElementById('travel-menu').classList.add('hidden');
+    
+    // Teletransportar frente al avión
+    player.x = planeX * 64 + 32;
+    player.y = (planeY + 1) * 64; 
+    
+    // Forzar actualización inmediata a red sobre nuestro cambio de isla
+    multiplayer.lastSend = 0; 
+    multiplayer.players = {}; // Limpiar estado de red anterior
+}
+
 // --- SISTEMA DE DEBUG ---
+
 function toggleDebug() {
     debug.active = !debug.active;
     if (debug.active) {
