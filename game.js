@@ -487,14 +487,14 @@ function getSkinAnimations(color) {
                 }
             }
             tempCtx.putImageData(imageData, 0, 0);
-            
+
             newAnimSet[dir][idx] = {
                 original: img,
                 processed: tempCanvas
             };
         });
     }
-    
+
     skinCaches[color] = newAnimSet;
     return newAnimSet;
 }
@@ -602,7 +602,7 @@ function update(dt) {
 
         const dx = pCenterX - tX;
         const dy = pBaseY - tY;
-        
+
         const overlapX = (halfW + pWh) - Math.abs(dx);
         const overlapY = (halfH + pHh) - Math.abs(dy);
 
@@ -694,16 +694,16 @@ function drawTiles() {
 }
 
 function getSunlightTransform() {
-    let timeOffset = worldTime - 12; 
+    let timeOffset = worldTime - 12;
     if (timeOffset < -12) timeOffset += 24;
     if (timeOffset > 12) timeOffset -= 24;
 
-    const skewAmount = (timeOffset / 6); 
+    const skewAmount = (timeOffset / 6);
     const scaleAmount = 0.15 + (Math.abs(timeOffset) / 12) * 0.5;
 
     let alpha = 0.5;
-    if (worldTime > 20 || worldTime < 4) alpha = 0.2; 
-    else if (worldTime >= 10 && worldTime <= 14) alpha = 0.6; 
+    if (worldTime > 20 || worldTime < 4) alpha = 0.2;
+    else if (worldTime >= 10 && worldTime <= 14) alpha = 0.6;
 
     return { skewAmount, scaleAmount, alpha };
 }
@@ -719,7 +719,7 @@ function drawTreeShadows() {
         const sCtx = treeShadowCanvas.getContext('2d');
         sCtx.drawImage(treeAsset, 0, 0);
         sCtx.globalCompositeOperation = 'source-in';
-        sCtx.fillStyle = '#0f0514'; 
+        sCtx.fillStyle = '#0f0514';
         sCtx.fillRect(0, 0, treeShadowCanvas.width, treeShadowCanvas.height);
     }
 
@@ -734,12 +734,12 @@ function drawTreeShadows() {
 
         if (drawX > -tileSize * 6 && drawX < canvas.width + tileSize * 6 && drawY > -tileSize * 6 && drawY < canvas.height + tileSize * 6) {
             const treeW = tileSize * 2.5;
-            const treeH = tileSize * 3.0; 
-            
+            const treeH = tileSize * 3.0;
+
             // Punto pivote: subimos la sombra un poco (-15px) para mejor perspectiva
             const baseX = drawX + treeHitbox.xRel;
             const baseY = drawY + treeHitbox.yRel + treeHitbox.h / 2 - 15;
-            
+
             ctx.save();
             ctx.translate(baseX, baseY);
             ctx.transform(1, 0, sun.skewAmount, sun.scaleAmount, 0, 0);
@@ -758,7 +758,7 @@ function drawTreeShadows() {
 function drawPlayerShadows() {
     const sun = getSunlightTransform();
     const shadowColor = '#0f0514'; // Mismo tono que el árbol
-    
+
     // Reunimos a todos en un array
     const entities = [
         { ...player, isLocal: true, screenX: player.x - camera.x, screenY: player.y - camera.y, u_uid: 'local' }
@@ -766,7 +766,7 @@ function drawPlayerShadows() {
     for (let uid in multiplayer.players) {
         const p = multiplayer.players[uid];
         entities.push({
-            ...p, isLocal: false, 
+            ...p, isLocal: false,
             screenX: p.x - camera.x, screenY: p.y - camera.y,
             width: player.width, height: player.height,
             direction: p.direction || player.direction,
@@ -823,10 +823,10 @@ function drawPlayerShadows() {
             ctx.save();
             ctx.translate(baseX, baseY);
             ctx.transform(1, 0, sun.skewAmount, sun.scaleAmount, 0, 0);
-            
+
             const imgLeft = drawX - baseX;
             const imgTop = drawY - baseY;
-            
+
             ctx.drawImage(tempCanvas, imgLeft, imgTop, drawW, drawH);
             ctx.restore();
         } else {
@@ -952,14 +952,14 @@ function drawHUD() {
             dW = canvas.height * iRatio;
             dX = (canvas.width - dW) / 2;
         }
-        
+
         ctx.drawImage(hudAssets.cuts, dX, dY, dW, dH);
     }
 
     const isNight = worldTime >= 20 || worldTime <= 6;
-    
+
     // Posiciones en la parte inferior izquierda
-    const barX = 45; 
+    const barX = 45;
     const barY = canvas.height - 85; // Subida junto con el corazón
     const barW = 200;
     const barH = 30;
@@ -997,7 +997,7 @@ function drawHUD() {
     let scale = 1;
     if (isNight) {
         // Latido rítmico solo de noche (rápido y notable)
-        const beat = performance.now() * 0.005; 
+        const beat = performance.now() * 0.005;
         scale = 1 + Math.max(0, Math.sin(beat)) * 0.15 + Math.max(0, Math.sin(beat + 0.3)) * 0.1;
     }
 
