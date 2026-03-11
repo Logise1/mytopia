@@ -125,6 +125,44 @@ async function initFirebase() {
     fs = fb.getFirestore(app);
 
     setupAuthListeners();
+
+    // Persistencia de sesión
+    fb.onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            multiplayer.userId = user.uid;
+            multiplayer.username = user.displayName;
+            
+            document.getElementById('auth-menu').classList.add('hidden');
+            document.getElementById('logout-btn').classList.remove('hidden');
+            skinMenu.classList.remove('hidden');
+            gameState = 'customizing';
+            
+            // Intentar recuperar el color guardado previamente
+            try {
+                const docSnap = await fb.getDoc(fb.doc(fs, "users", user.uid));
+                if (docSnap.exists() && docSnap.data().skin) {
+                    skinColor = docSnap.data().skin;
+                    if (tileAssets && tileAssets.isLoaded) processAllAnimations(skinColor);
+                }
+            } catch(e) {}
+            
+            startSync();
+        } else {
+            multiplayer.userId = null;
+            multiplayer.username = "";
+            document.getElementById('auth-menu').classList.remove('hidden');
+            document.getElementById('logout-btn').classList.add('hidden');
+            skinMenu.classList.add('hidden');
+            gameState = 'intro';
+        }
+    });
+
+    // Configuración del botón de Cerrar sesión
+    document.getElementById('logout-btn').addEventListener('click', () => {
+        fb.signOut(auth).then(() => {
+            window.location.reload(); // Recarga la página para empezar de cero
+        });
+    });
 }
 
 function setupAuthListeners() {
@@ -144,7 +182,7 @@ function setupAuthListeners() {
     authBtn.onclick = async () => {
         const username = userField.value.trim();
         const password = passField.value;
-        const email = `${username}@mytop.ia`; // Email interno secreto
+        const email = `${username}@mytop.ia`;
 
         if (!username || !password) {
             authError.innerText = "Error: Username y Password obligatorios";
@@ -163,15 +201,7 @@ function setupAuthListeners() {
             } else {
                 await fb.signInWithEmailAndPassword(auth, email, password);
             }
-            
-            multiplayer.userId = auth.currentUser.uid;
-            multiplayer.username = username || auth.currentUser.displayName;
-            
-            document.getElementById('auth-menu').classList.add('hidden');
-            skinMenu.classList.remove('hidden');
-            gameState = 'customizing';
-            
-            startSync();
+            // El cambio de UI y startSync() ahora los maneja onAuthStateChanged
         } catch (e) {
             authError.innerText = "Error: " + e.message;
         }
