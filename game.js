@@ -657,9 +657,9 @@ function drawDebugInfo() {
     ctx.fillText(`Vel X: ${player.vx.toFixed(0)} Y: ${player.vy.toFixed(0)}`, 10, canvas.height - 60);
 }
 
-// Añadir tecla F3 para debug
+// Añadir tecla 'P' para debug (antes F3)
 window.addEventListener('keydown', e => {
-    if (e.key === 'F3') {
+    if (e.code === 'KeyP') {
         e.preventDefault();
         toggleDebug();
     }
