@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyTopia</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Menú de personalización (estilo flotante al lado del personaje) -->
+        <div id="skin-menu" class="hidden">
+            <h3>Elige tu piel</h3>
+            <div class="color-options">
+                <button class="color-btn" style="background-color: #ffffff;" data-color="#ffffff"></button>
+                <button class="color-btn" style="background-color: #ffdbac;" data-color="#ffdbac"></button>
+                <button class="color-btn" style="background-color: #f1c27d;" data-color="#f1c27d"></button>
+                <button class="color-btn" style="background-color: #e0ac69;" data-color="#e0ac69"></button>
+                <button class="color-btn" style="background-color: #8d5524;" data-color="#8d5524"></button>
+                <button class="color-btn" style="background-color: #c68642;" data-color="#c68642"></button>
+                <button class="color-btn" style="background-color: #2b1d0e;" data-color="#2b1d0e"></button>
+            </div>
+            <button id="start-game">¡Listo!</button>
+        </div>
+    </div>
+
+    <!-- Assets -->
+    <div style="display:none;">
+        <img id="tile-sprite" src="sprites/tiles/base_tile.png">
+    </div>
+
+    <div id="controls-hint">Usa WASD o flechas para caminar</div>
+
+    <script src="game.js"></script>
+</body>
+
+</html>
