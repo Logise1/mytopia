@@ -23,7 +23,11 @@ const stats = {
 };
 
 // Mundo y Tiempo
-let worldTime = 12; // De 0 a 24 (12 = mediodía)
+let worldTime = 12; // De 0 a 24 adaptativo
+let debugTimeOffsetMinutes = 0;
+let uiCyclePhase = 'day'; 
+let uiTransitionAnimTime = -1;
+
 const dayNightColors = {
     night: { r: 5, g: 5, b: 40, a: 0.6 }, // Azul oscuro traslúcido
     day: { r: 0, g: 0, b: 0, a: 0 }
@@ -715,10 +719,32 @@ function update(dt) {
         player.idleTime = (player.idleTime || 0) + dt;
     }
 
-    // Interacción Avión
-    const distPlane = Math.hypot(player.x - (planeX * 64 + 32), player.y - (planeY * 64 + 32));
-    if (distPlane < 100 && !isTraveling && gameState === 'playing' && keys['Enter']) {
-        openTravelMenu();
+    // Interacción
+    const isInside = currentIsland.endsWith('_inside');
+    if (!isInside) {
+        const distPlane = Math.hypot(player.x - (planeX * 64 + 32), player.y - (planeY * 64 + 32));
+        if (distPlane < 100 && !isTraveling && gameState === 'playing' && keys['Enter']) {
+            openTravelMenu();
+            keys['Enter'] = false;
+        }
+
+        if (islandFeatures.house) {
+            const hx = islandFeatures.house.x * 64;
+            const hy = islandFeatures.house.y * 64;
+            const distHouse = Math.hypot(player.x - (hx + 64), player.y - (hy + 155));
+            if (distHouse < 80 && !isTraveling && gameState === 'playing' && keys['Enter']) {
+                enterHouse(currentIsland);
+                keys['Enter'] = false;
+            }
+        }
+    } else {
+        const doorX = (mapSize/2)*64;
+        const doorY = (mapSize/2 + 5)*64;
+        const distDoor = Math.hypot(player.x - doorX, player.y - doorY);
+        if (distDoor < 80 && !isTraveling && gameState === 'playing' && keys['Enter']) {
+            exitHouse();
+            keys['Enter'] = false;
+        }
     }
 }
 
@@ -787,8 +813,17 @@ function drawTiles() {
                         ctx.drawImage(img, drawX, drawY, tileSize, tileSize);
                     }
                 } else {
-                     ctx.fillStyle = tileType.includes('grass') ? '#2d5a27' : ((tileType.includes('water') || tileType.includes('wave')) ? '#0f5e9c' : '#d2b48c');
+                     if (tileType === 'black') ctx.fillStyle = '#111';
+                     else if (tileType === 'woodFloor') ctx.fillStyle = '#654321';
+                     else ctx.fillStyle = tileType.includes('grass') ? '#2d5a27' : ((tileType.includes('water') || tileType.includes('wave')) ? '#0f5e9c' : '#d2b48c');
+                     
                      ctx.fillRect(drawX, drawY, tileSize, tileSize);
+                     
+                     if (tileType === 'woodFloor') {
+                         ctx.strokeStyle = '#5c3a1e';
+                         ctx.lineWidth = 2;
+                         ctx.strokeRect(drawX, drawY, tileSize, tileSize);
+                     }
                 }
             } else {
                 ctx.fillStyle = tileType.includes('grass') ? '#2d5a27' : ((tileType.includes('water') || tileType.includes('wave')) ? '#0f5e9c' : '#d2b48c');
@@ -1064,13 +1099,97 @@ function drawHUD() {
         ctx.restore();
     }
 
-    if (hudAssets.light && hudAssets.light.complete && hudAssets.light.naturalWidth > 0) {
-        ctx.save();
-        ctx.globalAlpha = 0.2; // Opacidad muy sutil para la esquina
-        // Posicionarlo en la esquina superior izquierda
-        ctx.drawImage(hudAssets.light, 0, 0, hudAssets.light.naturalWidth, hudAssets.light.naturalHeight);
-        ctx.restore();
+    // --- LÓGICA DE TIEMPO Y CICLO (Abajo Derecha) ---
+    const DAY_MILLIS = 20 * 60 * 1000;
+    const NIGHT_MILLIS = 15 * 60 * 1000;
+    const TOTAL_MILLIS = DAY_MILLIS + NIGHT_MILLIS;
+
+    const nowMs = (Date.now() + (debugTimeOffsetMinutes * 60000)) % TOTAL_MILLIS;
+    const isActuallyNight = nowMs >= DAY_MILLIS;
+
+    // Actualizar worldTime globalmente basado en el ciclo real (afecta shaders)
+    if (!isActuallyNight) {
+        worldTime = 6 + (nowMs / DAY_MILLIS) * 12; // Dia: 6:00 a 18:00
+    } else {
+        let prog = (nowMs - DAY_MILLIS) / NIGHT_MILLIS;
+        let wt = 18 + prog * 12;
+        worldTime = wt >= 24 ? wt - 24 : wt; // Noche: 18:00 a 6:00
     }
+
+    // Gestionar inicio de la transición
+    if (isActuallyNight && uiCyclePhase === 'day') {
+        uiCyclePhase = 'night';
+        uiTransitionAnimTime = performance.now();
+    } else if (!isActuallyNight && uiCyclePhase === 'night') {
+        uiCyclePhase = 'day';
+        uiTransitionAnimTime = performance.now();
+    }
+
+    const checkTransLimit = 500; // 0.5 segundos de animación rápida
+    const rW = 100;
+    const rH = 100;
+    const rX = canvas.width - rW - 20;
+    const rY = canvas.height - rH - 25;
+
+    // Dibujar el icono correcto
+    if (uiTransitionAnimTime > 0 && performance.now() - uiTransitionAnimTime < checkTransLimit) {
+        let prog = (performance.now() - uiTransitionAnimTime) / checkTransLimit; // 0 to 1
+        let actFrame = Math.floor(prog * 6) + 1; // 1 to 6
+        if (actFrame > 6) actFrame = 6;
+        if (uiCyclePhase === 'day') actFrame = 7 - actFrame; // animación en reversa al amanecer
+
+        const img = hudAssets['transition' + actFrame];
+        if (img && img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, rX, rY, rW, rH);
+        }
+    } else {
+        uiTransitionAnimTime = -1; // Detiene la trans
+        
+        if (uiCyclePhase === 'day') {
+            if (hudAssets.clock1 && hudAssets.clock1.complete && hudAssets.clock1.naturalWidth > 0) {
+                ctx.drawImage(hudAssets.clock1, rX, rY, rW, rH);
+            }
+            if (hudAssets.clock2 && hudAssets.clock2.complete && hudAssets.clock2.naturalWidth > 0) {
+                ctx.save();
+                ctx.translate(rX + rW/2, rY + rH/2);
+                ctx.rotate((nowMs / DAY_MILLIS) * Math.PI * 2);
+                // Palo un poco más grande y ancho, desde el centro extendiéndose hacia arriba
+                const handThickness = 8;
+                const handLength = (rH / 2) - 4;
+                ctx.drawImage(hudAssets.clock2, -handThickness/2, -handLength, handThickness, handLength);
+                ctx.restore();
+            }
+        } else {
+            if (hudAssets.eye1 && hudAssets.eye1.complete && hudAssets.eye1.naturalWidth > 0) {
+                ctx.drawImage(hudAssets.eye1, rX, rY, rW, rH);
+            }
+            if (hudAssets.eye2 && hudAssets.eye2.complete && hudAssets.eye2.naturalWidth > 0) {
+                const px = Math.sin(performance.now() / 400) * 8;
+                const py = Math.cos(performance.now() / 300) * 8;
+                
+                // Pupila más pequeña y centrada
+                const pSize = 34; // 34x34 pixeles 
+                const cx = rX + (rW - pSize) / 2 + px;
+                const cy = rY + (rH - pSize) / 2 + py;
+                
+                ctx.drawImage(hudAssets.eye2, cx, cy, pSize, pSize);
+            }
+        }
+    }
+
+    // Dibujar texto del tiempo restante
+    const timeLeftMs = isActuallyNight ? (TOTAL_MILLIS - nowMs) : (DAY_MILLIS - nowMs);
+    const mins = Math.floor(timeLeftMs / 60000);
+    const secs = Math.floor((timeLeftMs % 60000) / 1000);
+    const timeText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+    ctx.fillStyle = "white";
+    ctx.font = "bold 20px Consolas, monospace";
+    ctx.textAlign = "center";
+    ctx.shadowColor = "black";
+    ctx.shadowBlur = 4;
+    ctx.fillText(timeText, rX + rW / 2, rY - 10);
+    ctx.shadowBlur = 0;
 
     if (zoneMessageTimer > 0 && currentZone !== '') {
         ctx.save();
@@ -1241,14 +1360,21 @@ function gameLoop(currentTime) {
     });
 
     if (islandFeatures.house) {
-        const hx = islandFeatures.house.x * 64 - camera.x;
-        const hy = islandFeatures.house.y * 64 - camera.y;
-        renderList.push({ y: islandFeatures.house.y * 64 + 160, draw: () => drawHouse(hx, hy) });
+        const hx = islandFeatures.house.x * 64;
+        const hy = islandFeatures.house.y * 64;
+        renderList.push({ y: hy + 160, draw: () => drawHouse(hx - camera.x, hy - camera.y, hx, hy) });
     }
 
-    // 4. Avión
-    const airplaneY = planeY * 64 + 64;
-    renderList.push({ y: airplaneY, draw: () => drawAirplane(planeX * 64 - camera.x, planeY * 64 - camera.y) });
+    // 4. Avión / Puerta
+    const isInside = currentIsland.endsWith('_inside');
+    if (!isInside) {
+        const airplaneY = planeY * 64 + 64;
+        renderList.push({ y: airplaneY, draw: () => drawAirplane(planeX * 64 - camera.x, planeY * 64 - camera.y) });
+    } else {
+        const doorY = (mapSize/2 + 5)*64;
+        const doorX = (mapSize/2)*64;
+        renderList.push({ y: doorY + 64, draw: () => drawInsideDoor(doorX - camera.x, doorY - camera.y, doorX, doorY) });
+    }
 
     // Ordenar y dibujar (Capa de profundidad)
 
@@ -1333,7 +1459,7 @@ function applyDayNightEffect() {
     }
 }
 
-function drawHouse(drawX, drawY) {
+function drawHouse(drawX, drawY, worldX, worldY) {
     ctx.fillStyle = '#654321'; // paredes
     ctx.fillRect(drawX + 10, drawY + 80, 108, 100);
     ctx.fillStyle = '#8B0000'; // tejado
@@ -1348,6 +1474,27 @@ function drawHouse(drawX, drawY) {
     ctx.fillStyle = '#add8e6'; // ventana
     ctx.fillRect(drawX + 24, drawY + 100, 24, 24);
     ctx.fillRect(drawX + 80, drawY + 100, 24, 24);
+
+    const distHouse = Math.hypot(player.x - (worldX + 64), player.y - (worldY + 155));
+    if (distHouse < 80 && gameState === 'playing' && !isTraveling) {
+        ctx.fillStyle = "white";
+        ctx.font = "bold 14px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText("[ENTER] Entrar", drawX + 64, drawY + 200);
+    }
+}
+
+function drawInsideDoor(drawX, drawY, worldX, worldY) {
+    ctx.fillStyle = '#0f0514'; // un tapete oscuro
+    ctx.fillRect(drawX - 32, drawY - 32, 64, 64);
+    
+    const distDoor = Math.hypot(player.x - worldX, player.y - worldY);
+    if (distDoor < 80 && gameState === 'playing' && !isTraveling) {
+        ctx.fillStyle = "white";
+        ctx.font = "bold 14px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText("[ENTER] Salir", drawX, drawY - 40);
+    }
 }
 
 function drawAirplane(drawX, drawY) {
@@ -1452,7 +1599,8 @@ function generateIsland(islandId) {
     treeData.length = 0;
     islandFeatures.house = null;
 
-    mapSize = islandId === 'central' ? 140 : 100;
+    const isInside = islandId.endsWith('_inside');
+    mapSize = islandId === 'central' ? 140 : (isInside ? 30 : 100);
     
     seed = [...islandId].reduce((acc, char) => acc + char.charCodeAt(0), 0);
     if (islandId === 'home' && multiplayer.userId) {
@@ -1465,6 +1613,25 @@ function generateIsland(islandId) {
     const grassRadius = islandId === 'central' ? 35 : 14;
     const sandRadius = islandId === 'central' ? 42 : 20;
 
+    if (isInside) {
+        for (let y = 0; y < mapSize; y++) {
+            mapData[y] = [];
+            for (let x = 0; x < mapSize; x++) {
+                const dx = x - centerX;
+                const dy = y - centerY;
+                // Generar un 10x10 de madera y el resto background
+                if (dx >= -5 && dx <= 5 && dy >= -5 && dy <= 5) {
+                    mapData[y][x] = 'woodFloor';
+                } else {
+                    mapData[y][x] = 'black';
+                }
+            }
+        }
+        planeX = centerX;
+        planeY = centerY + 4; // Puerta logica
+        return;
+    }
+
     for (let y = 0; y < mapSize; y++) {
         mapData[y] = [];
         for (let x = 0; x < mapSize; x++) {
@@ -1475,7 +1642,9 @@ function generateIsland(islandId) {
 
             if (absDx < grassRadius && absDy < grassRadius) {
                 mapData[y][x] = 'grass';
-                if (seededRandom() < 0.05 && absDx > 1 && absDy > 1 && !(dx === 2 && dy === grassRadius - 1) && !(dx === -5 && dy === -2)) {
+                // La zona de la casa está entre dx: -7 y -1, dy: -5 y +1
+                const isHouseArea = islandId !== 'central' && dx >= -7 && dx <= -1 && dy >= -5 && dy <= 1;
+                if (seededRandom() < 0.05 && absDx > 1 && absDy > 1 && !(dx === 2 && dy === grassRadius - 1) && !isHouseArea) {
                     treeData.push({ x, y });
                 }
             } else if (absDx === grassRadius && absDy < grassRadius) {
@@ -1518,6 +1687,28 @@ function generateIsland(islandId) {
     planeY = centerY + grassRadius - 2;
 }
 
+function enterHouse(baseIslandId) {
+    currentIsland = baseIslandId + '_inside';
+    generateIsland(currentIsland);
+    player.x = (mapSize / 2) * 64;
+    player.y = (mapSize / 2 + 4) * 64;
+    multiplayer.players = {};
+    multiplayer.lastSend = 0;
+    sendMovement();
+}
+
+function exitHouse() {
+    currentIsland = currentIsland.replace('_inside', '');
+    generateIsland(currentIsland);
+    if (islandFeatures.house) {
+        player.x = islandFeatures.house.x * 64 + 64;
+        player.y = islandFeatures.house.y * 64 + 180; // Aparezco en el portal
+    }
+    multiplayer.players = {};
+    multiplayer.lastSend = 0;
+    sendMovement();
+}
+
 // --- SISTEMA DE DEBUG ---
 
 function toggleDebug() {
@@ -1546,7 +1737,7 @@ function createDebugPanel() {
         { label: 'Vel Máx', key: 'maxSpeed', min: 0, max: 2000, step: 50 },
         { label: 'Fricción', key: 'friction', min: 0.1, max: 1, step: 0.01 },
         { label: 'Energía', key: 'energy', min: 0, max: 100, step: 1, obj: stats },
-        { label: 'Hora del día', key: 'worldTime', min: 0, max: 24, step: 0.1, obj: window }
+        { label: 'Hora (Avance min)', key: 'debugTimeOffsetMinutes', min: 0, max: 100, step: 1, obj: window }
     ];
 
     controls.forEach(c => {
@@ -1554,7 +1745,7 @@ function createDebugPanel() {
         div.style.marginBottom = '5px';
 
         let initialVal;
-        if (c.key === 'worldTime') initialVal = worldTime;
+        if (c.key === 'debugTimeOffsetMinutes') initialVal = debugTimeOffsetMinutes;
         else initialVal = (c.obj || player)[c.key];
 
         div.innerHTML = `
@@ -1569,7 +1760,7 @@ function createDebugPanel() {
 
     window.updateDebugValue = (key, val, label) => {
         const value = parseFloat(val);
-        if (key === 'worldTime') worldTime = value;
+        if (key === 'debugTimeOffsetMinutes') debugTimeOffsetMinutes = value;
         else if (label === 'Energía') stats[key] = value;
         else player[key] = value;
         document.getElementById(`val-${key}`).innerText = val;
