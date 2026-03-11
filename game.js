@@ -18,8 +18,14 @@ let mouseY = 0;
 // Stats del Jugador
 const stats = {
     energy: 100,
-    mood: 1, // Basado en HUD 1-8
+    mood: 1,
     health: 100
+};
+
+// Modo Debug
+const debug = {
+    active: false,
+    panel: null
 };
 
 // Assets HUD
@@ -84,18 +90,16 @@ const tileAssets = {
     'grass-sand-down': new Image(),
     'grass-sand-left': new Image(),
     'grass-sand-right': new Image(),
-    'grass-sand-diagonal1': new Image(),
-    'grass-sand-diagonal2': new Image(),
-    'grass-sand-diagonal3': new Image(),
+    'grass-sand-diagonal': new Image(),
     isLoaded: false
 };
 
-const mapSize = 100; // Mapa más grande para la isla
+const mapSize = 100;
 const mapData = [];
 
 // Inicialización
 window.onload = async () => {
-    // Generar isla de grass centrada en (50, 50) con transición a sand
+    // Generar isla
     const centerX = mapSize / 2;
     const centerY = mapSize / 2;
     const radius = 10;
@@ -106,7 +110,6 @@ window.onload = async () => {
             const dx = x - centerX;
             const dy = y - centerY;
             
-            // Lógica de transición de isla cuadrada
             if (Math.abs(dx) < radius && Math.abs(dy) < radius) {
                 mapData[y][x] = 'grass';
             } else if (Math.abs(dx) === radius && Math.abs(dy) < radius) {
@@ -114,14 +117,13 @@ window.onload = async () => {
             } else if (Math.abs(dy) === radius && Math.abs(dx) < radius) {
                 mapData[y][x] = dy < 0 ? 'grass-sand-up' : 'grass-sand-down';
             } else if (dx === -radius && dy === -radius) {
-                mapData[y][x] = 'grass-sand-diagonal1'; // Arriba Izquierda
+                mapData[y][x] = 'grass-sand-diagonal'; // Arriba Izquierda (TL)
             } else if (dx === radius && dy === -radius) {
-                mapData[y][x] = 'grass-sand-diagonal2'; // Arriba Derecha
+                mapData[y][x] = 'grass-sand-diagonal_TR'; // Arriba Derecha
             } else if (dx === radius && dy === radius) {
-                mapData[y][x] = 'grass-sand-diagonal3'; // Abajo Derecha
+                mapData[y][x] = 'grass-sand-diagonal_BR'; // Abajo Derecha
             } else if (dx === -radius && dy === radius) {
-                // Si falta diagonal4 (Abajo Izquierda), usamos sand o grass-sand-left como parche
-                mapData[y][x] = 'sand'; 
+                mapData[y][x] = 'grass-sand-diagonal_BL'; // Abajo Izquierda
             } else {
                 mapData[y][x] = 'sand';
             }
@@ -165,11 +167,13 @@ async function loadTileAssets() {
     const files = [
         'grass', 'sand', 
         'grass-sand-up', 'grass-sand-down', 'grass-sand-left', 'grass-sand-right',
-        'grass-sand-diagonal1', 'grass-sand-diagonal2', 'grass-sand-diagonal3'
+        'grass-sand-diagonal'
     ];
     
     files.forEach(name => {
-        tileAssets[name].src = `sprites/tiles/${name}.png`;
+        // Usamos diagonal1 como la base para todas las rotaciones
+        const fileName = name === 'grass-sand-diagonal' ? 'grass-sand-diagonal1' : name;
+        tileAssets[name].src = `sprites/tiles/${fileName}.png`;
         promises.push(new Promise(res => tileAssets[name].onload = res));
     });
     
@@ -372,20 +376,38 @@ function drawTiles() {
 
     for (let ty = startY; ty < endY; ty++) {
         for (let tx = startX; tx < endX; tx++) {
-            // Repetir el mapa si se sale de los bordes
             const mx = ((tx % mapSize) + mapSize) % mapSize;
             const my = ((ty % mapSize) + mapSize) % mapSize;
             
-            const tileType = mapData[my][mx];
+            let tileType = mapData[my][mx];
             const drawX = tx * tileSize - camera.x;
             const drawY = ty * tileSize - camera.y;
 
             if (tileAssets.isLoaded) {
-                const img = tileAssets[tileType];
-                ctx.drawImage(img, drawX, drawY, tileSize, tileSize);
+                let rotation = 0;
+                let finalType = tileType;
+
+                // Lógica de rotación para diagonales (giradas 180° extra por petición)
+                if (tileType.startsWith('grass-sand-diagonal')) {
+                    finalType = 'grass-sand-diagonal';
+                    rotation = Math.PI; // Base (Top-Left) girada 180
+                    if (tileType.endsWith('_TR')) rotation = Math.PI * 1.5; // Top-Right (+90)
+                    if (tileType.endsWith('_BR')) rotation = 0;             // Bottom-Right (+180)
+                    if (tileType.endsWith('_BL')) rotation = Math.PI * 0.5; // Bottom-Left (+270)
+                }
+
+                const img = tileAssets[finalType];
+                if (rotation !== 0) {
+                    ctx.save();
+                    ctx.translate(drawX + tileSize / 2, drawY + tileSize / 2);
+                    ctx.rotate(rotation);
+                    ctx.drawImage(img, -tileSize / 2, -tileSize / 2, tileSize, tileSize);
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(img, drawX, drawY, tileSize, tileSize);
+                }
             } else {
-                // Fallback
-                ctx.fillStyle = tileType === 'grass' ? '#2d5a27' : '#d2b48c';
+                ctx.fillStyle = tileType.includes('grass') ? '#2d5a27' : '#d2b48c';
                 ctx.fillRect(drawX, drawY, tileSize, tileSize);
             }
         }
@@ -482,29 +504,37 @@ function drawHUD() {
     // 1. Icono Corazón (Arriba Izquierda)
     ctx.drawImage(hudAssets.heartDay, 20, 20, 40, 40);
 
-    // 2. Barra de Vida Personalizada
+    // 2. Barra de Vida Triple Borde
     const barX = 70;
     const barY = 25;
     const barW = 200;
     const barH = 30;
-    const borderSize = 4;
-
-    // Borde (5d3350)
+    
+    // Borde Exterior Oscuro (5d3350)
     ctx.fillStyle = '#5d3350';
     ctx.fillRect(barX, barY, barW, barH);
 
-    // Fondo (ffb58b)
+    // Borde Medio Claro (ffb58b) - Grosor de 3px
     ctx.fillStyle = '#ffb58b';
-    ctx.fillRect(barX + borderSize, barY + borderSize, barW - (borderSize * 2), barH - (borderSize * 2));
+    ctx.fillRect(barX + 2, barY + 2, barW - 4, barH - 4);
+
+    // Fondo Interior Oscuro (5d3350) - Grosor de 6px total desde fuera
+    ctx.fillStyle = '#5d3350';
+    ctx.fillRect(barX + 5, barY + 5, barW - 10, barH - 10);
 
     // Progreso (e240af)
-    const progressW = (stats.energy / 100) * (barW - (borderSize * 2));
+    const progressW = (stats.energy / 100) * (barW - 10);
     if (progressW > 0) {
         ctx.fillStyle = '#e240af';
-        ctx.fillRect(barX + borderSize, barY + borderSize, progressW, barH - (borderSize * 2));
+        ctx.fillRect(barX + 5, barY + 5, progressW, barH - 10);
     }
 
-    // 3. (El Tablón de Selección ahora se gestiona en CSS como fondo del menú)
+    // 3. (Tablón ahora en CSS)
+    
+    // Muestra de Debug si está activo
+    if (debug.active) {
+        drawDebugInfo();
+    }
 }
 
 function drawSinglePupil(ex, ey, pupilSize) {
@@ -556,5 +586,81 @@ function gameLoop(currentTime) {
     drawPlayer();
     drawHUD();
 
+    if (debug.active) updateDebugPanel();
+
     requestAnimationFrame(gameLoop);
 }
+
+// --- SISTEMA DE DEBUG ---
+function toggleDebug() {
+    debug.active = !debug.active;
+    if (debug.active) {
+        if (!debug.panel) createDebugPanel();
+        debug.panel.style.display = 'block';
+    } else if (debug.panel) {
+        debug.panel.style.display = 'none';
+    }
+}
+
+function createDebugPanel() {
+    debug.panel = document.createElement('div');
+    debug.panel.id = 'debug-panel';
+    debug.panel.style.cssText = `
+        position: absolute; top: 10px; right: 10px;
+        background: rgba(0,0,0,0.8); color: #0f0;
+        padding: 10px; font-family: monospace; font-size: 12px;
+        border: 1px solid #0f0; border-radius: 5px; z-index: 1000;
+        pointer-events: auto;
+    `;
+    
+    const controls = [
+        { label: 'Aceleración', key: 'speed', min: 0, max: 5000, step: 100 },
+        { label: 'Vel Máx', key: 'maxSpeed', min: 0, max: 2000, step: 50 },
+        { label: 'Fricción', key: 'friction', min: 0.1, max: 1, step: 0.01 },
+        { label: 'Energía', key: 'energy', min: 0, max: 100, step: 1, obj: stats }
+    ];
+
+    controls.forEach(c => {
+        const div = document.createElement('div');
+        div.style.marginBottom = '5px';
+        const obj = c.obj || player;
+        div.innerHTML = `
+            <label>${c.label}: <span id="val-${c.key}">${obj[c.key]}</span></label><br>
+            <input type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${obj[c.key]}" 
+                   oninput="window.updateDebugValue('${c.key}', this.value, ${c.obj ? 'true' : 'false'})">
+        `;
+        debug.panel.appendChild(div);
+    });
+
+    document.body.appendChild(debug.panel);
+    
+    window.updateDebugValue = (key, val, isStat) => {
+        const value = parseFloat(val);
+        if (isStat) stats[key] = value;
+        else player[key] = value;
+        document.getElementById(`val-${key}`).innerText = val;
+    };
+}
+
+function updateDebugPanel() {
+    // Info adicional que solo se lee
+    if (debug.active) {
+        // Podríamos añadir FPS aquí
+    }
+}
+
+function drawDebugInfo() {
+    ctx.fillStyle = 'rgba(0, 255, 0, 0.7)';
+    ctx.font = '12px monospace';
+    ctx.fillText(`Cam X: ${camera.x.toFixed(0)} Y: ${camera.y.toFixed(0)}`, 10, canvas.height - 20);
+    ctx.fillText(`Pos X: ${player.x.toFixed(0)} Y: ${player.y.toFixed(0)}`, 10, canvas.height - 40);
+    ctx.fillText(`Vel X: ${player.vx.toFixed(0)} Y: ${player.vy.toFixed(0)}`, 10, canvas.height - 60);
+}
+
+// Añadir tecla F3 para debug
+window.addEventListener('keydown', e => {
+    if (e.key === 'F3') {
+        e.preventDefault();
+        toggleDebug();
+    }
+});
