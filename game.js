@@ -45,6 +45,7 @@ const hudAssets = {
     tablon: new Image(),
     pupil: new Image(),
     cuts: new Image(),
+    light: new Image(),
     clock1: new Image(),
     clock2: new Image(),
     costume1: new Image(),
@@ -105,7 +106,10 @@ const keys = {};
 const tileAssets = {
     grass: new Image(),
     sand: new Image(),
-    water: new Image(),
+    water1: new Image(),
+    water2: new Image(),
+    water3: new Image(),
+    water4: new Image(),
     'grass-sand-up': new Image(),
     'grass-sand-down': new Image(),
     'grass-sand-left': new Image(),
@@ -119,7 +123,7 @@ const tileAssets = {
     isLoaded: false
 };
 
-const mapSize = 100;
+let mapSize = 100;
 const mapData = [];
 const treeData = []; // Guardar posiciones de árboles
 const treeAsset = new Image();
@@ -130,6 +134,10 @@ let isTraveling = false;
 let travelTimer = 0;
 const TRAVEL_TIME = 30; // Real life 30s
 let planeX = 0, planeY = 0;
+
+const islandFeatures = { house: null };
+let currentZone = '';
+let zoneMessageTimer = 0;
 
 // Configuración de Hitbox de Árbol (para ajustes fáciles)
 const treeHitbox = {
@@ -199,6 +207,9 @@ async function initFirebase() {
                 skinMenu.classList.remove('hidden');
                 gameState = 'customizing';
             }
+            
+            // Generar la isla actual usando la semilla del usuario o tipo correcto
+            generateIsland(currentIsland);
 
             startSync();
         } else {
@@ -348,62 +359,8 @@ window.onload = async () => {
     // 1. Firebase primero
     await initFirebase();
 
-    // 2. Generar isla con agua alrededor
-    const centerX = mapSize / 2;
-    const centerY = mapSize / 2;
-    const grassRadius = 14;
-    const sandRadius = 20; // Agua a 20 bloques
-
-    for (let y = 0; y < mapSize; y++) {
-        mapData[y] = [];
-        for (let x = 0; x < mapSize; x++) {
-            const dx = x - centerX;
-            const dy = y - centerY;
-            const absDx = Math.abs(dx);
-            const absDy = Math.abs(dy);
-
-            if (absDx < grassRadius && absDy < grassRadius) {
-                mapData[y][x] = 'grass';
-                if (seededRandom() < 0.05 && absDx > 1 && absDy > 1 && !(dx === 2 && dy === grassRadius - 1)) {
-                    treeData.push({ x, y });
-                }
-            } else if (absDx === grassRadius && absDy < grassRadius) {
-                mapData[y][x] = dx < 0 ? 'grass-sand-left' : 'grass-sand-right';
-            } else if (absDy === grassRadius && absDx < grassRadius) {
-                mapData[y][x] = dy < 0 ? 'grass-sand-up' : 'grass-sand-down';
-            } else if (dx === -grassRadius && dy === -grassRadius) {
-                mapData[y][x] = 'grass-sand-diagonal';
-            } else if (dx === grassRadius && dy === -grassRadius) {
-                mapData[y][x] = 'grass-sand-diagonal_TR';
-            } else if (dx === grassRadius && dy === grassRadius) {
-                mapData[y][x] = 'grass-sand-diagonal_BR';
-            } else if (dx === -grassRadius && dy === grassRadius) {
-                mapData[y][x] = 'grass-sand-diagonal_BL';
-            } else if (absDx < sandRadius && absDy < sandRadius) {
-                mapData[y][x] = 'sand';
-            } else if (absDx === sandRadius && absDy < sandRadius) {
-                const wType = seededRandom() < 0.33 ? 'wave1' : (seededRandom() < 0.5 ? 'wave2' : 'wave3');
-                mapData[y][x] = dx < 0 ? wType + '_W' : wType + '_E';
-            } else if (absDy === sandRadius && absDx < sandRadius) {
-                const wType = seededRandom() < 0.33 ? 'wave1' : (seededRandom() < 0.5 ? 'wave2' : 'wave3');
-                mapData[y][x] = dy < 0 ? wType + '_N' : wType + '_S';
-            } else if (dx === -sandRadius && dy === -sandRadius) {
-                mapData[y][x] = 'wave4_TL';
-            } else if (dx === sandRadius && dy === -sandRadius) {
-                mapData[y][x] = 'wave4_TR';
-            } else if (dx === sandRadius && dy === sandRadius) {
-                mapData[y][x] = 'wave4_BR';
-            } else if (dx === -sandRadius && dy === sandRadius) {
-                mapData[y][x] = 'wave4_BL';
-            } else {
-                mapData[y][x] = seededRandom() < 0.05 ? 'wavebig' : 'water'; // Océano infinito
-            }
-        }
-    }
-
-    // Ubicamos avión
-    planeX = centerX + 2;
-    planeY = centerY + grassRadius - 2;
+    // 2. Generar isla básica inicial
+    generateIsland('home');
 
     // 1. Iniciamos zoom-in
     setTimeout(() => {
@@ -419,8 +376,8 @@ window.onload = async () => {
     ]);
 
     // Posicionar jugador en el centro de la isla
-    player.x = centerX * 64;
-    player.y = centerY * 64;
+    player.x = (mapSize / 2) * 64;
+    player.y = (mapSize / 2) * 64;
 
     // 3. Listeners
     window.addEventListener('keydown', e => keys[e.code] = true);
@@ -439,7 +396,7 @@ window.onload = async () => {
 async function loadTileAssets() {
     const promises = [];
     const files = [
-        'grass', 'sand', 'water',
+        'grass', 'sand', 
         'grass-sand-up', 'grass-sand-down', 'grass-sand-left', 'grass-sand-right',
         'grass-sand-diagonal',
         'wave1', 'wave2', 'wave3', 'wave4', 'wavebig'
@@ -450,6 +407,14 @@ async function loadTileAssets() {
         if (name === 'grass-sand-diagonal') fileName = 'grass-sand-diagonal1';
         tileAssets[name].src = `sprites/tiles/${fileName}.png`;
         promises.push(new Promise(res => tileAssets[name].onload = res));
+    });
+
+    // Cargar nuevas animaciones de agua
+    const waterFrames = ['wave2', 'wave5', 'wave6', 'wave7'];
+    waterFrames.forEach((frameFile, index) => {
+        const id = 'water' + (index + 1);
+        tileAssets[id].src = `sprites/tiles/wateranimations/${frameFile}.png`;
+        promises.push(new Promise(res => tileAssets[id].onload = res));
     });
 
     // Cargar árbol
@@ -471,6 +436,7 @@ async function loadHUDAssets() {
         tablon: 'selecciontablon.svg',
         pupil: 'pupila.svg',
         cuts: 'cuts.svg',
+        light: 'light.svg',
         clock1: 'night/clock1.svg',
         clock2: 'night/clock2.svg',
         costume1: 'night/costume1.svg',
@@ -634,6 +600,28 @@ function update(dt) {
         inputMoving = true;
     }
 
+    // --- ZONAS Y TEXTOS ---
+    if (currentIsland === 'central') {
+        const cx = (mapSize / 2) * 64;
+        const cy = (mapSize / 2) * 64;
+        let newZone = 'Plaza Central';
+        if (player.x < cx - 12 * 64) newZone = 'Barrio Oeste';
+        else if (player.x > cx + 12 * 64) newZone = 'Barrio Este';
+        else if (player.y < cy - 12 * 64) newZone = 'Barrio Norte';
+        else if (player.y > cy + 12 * 64) newZone = 'Barrio Sur';
+
+        if (newZone !== currentZone) {
+            currentZone = newZone;
+            zoneMessageTimer = 4;
+        }
+    } else {
+        currentZone = '';
+    }
+
+    if (zoneMessageTimer > 0) {
+        zoneMessageTimer -= dt;
+    }
+
     // Normalizar aceleración diagonal
     if (ax !== 0 && ay !== 0) {
         const factor = 1 / Math.sqrt(2);
@@ -761,9 +749,12 @@ function drawTiles() {
                     if (tileType.endsWith('_TR')) rotation = Math.PI * 1.5; // Top-Right (+90)
                     if (tileType.endsWith('_BR')) rotation = 0;             // Bottom-Right (+180)
                     if (tileType.endsWith('_BL')) rotation = Math.PI * 0.5; // Bottom-Left (+270)
-                } else if (tileType.startsWith('wave1') || tileType.startsWith('wave2') || tileType.startsWith('wave3')) {
+                } else if (tileType.startsWith('wave_')) {
+                    // Animación de la marea: desfasada por posición (mx + my) pero con un pulso temporal constante cada 400ms
+                    const offset = (mx + my) % 3;
+                    const frame = (Math.floor(performance.now() / 400) + offset) % 3 + 1;
+                    finalType = 'wave' + frame;
                     const parts = tileType.split('_');
-                    finalType = parts[0];
                     const dir = parts[1];
                     if (dir === 'S') rotation = 0;               // Arena arriba, agua abajo
                     if (dir === 'W') rotation = Math.PI * 0.5;   // Arena derecha, agua izq (Esquivando CSS, rotación horaria de img base)
@@ -777,6 +768,11 @@ function drawTiles() {
                     if (dir === 'BL') rotation = Math.PI * 0.5; 
                     if (dir === 'TL') rotation = Math.PI;       
                     if (dir === 'TR') rotation = Math.PI * 1.5; 
+                } else if (tileType === 'water') {
+                    // Animación ciclada para el agua base (4 sprites)
+                    const offset = (mx + my) % 4;
+                    const frame = (Math.floor(performance.now() / 400) + offset) % 4 + 1;
+                    finalType = 'water' + frame;
                 }
 
                 const img = tileAssets[finalType];
@@ -1068,6 +1064,25 @@ function drawHUD() {
         ctx.restore();
     }
 
+    if (hudAssets.light && hudAssets.light.complete && hudAssets.light.naturalWidth > 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.2; // Opacidad muy sutil para la esquina
+        // Posicionarlo en la esquina superior izquierda
+        ctx.drawImage(hudAssets.light, 0, 0, hudAssets.light.naturalWidth, hudAssets.light.naturalHeight);
+        ctx.restore();
+    }
+
+    if (zoneMessageTimer > 0 && currentZone !== '') {
+        ctx.save();
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, zoneMessageTimer)})`;
+        ctx.font = 'bold 36px Arial';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'black';
+        ctx.shadowBlur = 5;
+        ctx.fillText(`Entrando a ${currentZone}`, canvas.width / 2, 80);
+        ctx.restore();
+    }
+
     const isNight = worldTime >= 20 || worldTime <= 6;
 
     // Posiciones en la parte inferior izquierda
@@ -1221,9 +1236,15 @@ function gameLoop(currentTime) {
 
     // 3. Árboles (Ordenamos por la base inferior de su hitbox para que sea perfecto)
     treeData.forEach(tree => {
-        const sortingY = tree.y * 64 + (treeHitbox.yRel + treeHitbox.h / 2);
+        const sortingY = tree.y * 64 + treeHitbox.yRel + treeHitbox.h;
         renderList.push({ y: sortingY, draw: () => drawSingleTree(tree, 64) });
     });
+
+    if (islandFeatures.house) {
+        const hx = islandFeatures.house.x * 64 - camera.x;
+        const hy = islandFeatures.house.y * 64 - camera.y;
+        renderList.push({ y: islandFeatures.house.y * 64 + 160, draw: () => drawHouse(hx, hy) });
+    }
 
     // 4. Avión
     const airplaneY = planeY * 64 + 64;
@@ -1312,6 +1333,23 @@ function applyDayNightEffect() {
     }
 }
 
+function drawHouse(drawX, drawY) {
+    ctx.fillStyle = '#654321'; // paredes
+    ctx.fillRect(drawX + 10, drawY + 80, 108, 100);
+    ctx.fillStyle = '#8B0000'; // tejado
+    ctx.beginPath();
+    ctx.moveTo(drawX - 10, drawY + 80);
+    ctx.lineTo(drawX + 64, drawY);
+    ctx.lineTo(drawX + 138, drawY + 80);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF'; // puerta
+    ctx.fillRect(drawX + 44, drawY + 130, 40, 50);
+    ctx.fillStyle = '#add8e6'; // ventana
+    ctx.fillRect(drawX + 24, drawY + 100, 24, 24);
+    ctx.fillRect(drawX + 80, drawY + 100, 24, 24);
+}
+
 function drawAirplane(drawX, drawY) {
     ctx.font = "80px Arial";
     ctx.textAlign = "center";
@@ -1334,6 +1372,7 @@ function openTravelMenu() {
     refreshOtherIslandsList();
     
     document.getElementById('go-home-btn').onclick = () => startTravel('home');
+    document.getElementById('go-central-btn').onclick = () => startTravel('central');
     document.getElementById('close-travel-btn').onclick = () => {
         document.getElementById('travel-menu').classList.add('hidden');
     };
@@ -1394,6 +1433,9 @@ function completeTravel() {
     currentIsland = targetTravelIsland;
     document.getElementById('travel-menu').classList.add('hidden');
     
+    // Regenerar la nueva isla para esta ubicación
+    generateIsland(currentIsland);
+
     // Teletransportar frente al avión
     player.x = planeX * 64 + 32;
     player.y = (planeY + 1) * 64; 
@@ -1401,6 +1443,79 @@ function completeTravel() {
     // Forzar actualización inmediata a red sobre nuestro cambio de isla
     multiplayer.lastSend = 0; 
     multiplayer.players = {}; // Limpiar estado de red anterior
+    sendMovement();
+}
+
+// --- GENERADOR DE ISLAS ---
+function generateIsland(islandId) {
+    mapData.length = 0;
+    treeData.length = 0;
+    islandFeatures.house = null;
+
+    mapSize = islandId === 'central' ? 140 : 100;
+    
+    seed = [...islandId].reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    if (islandId === 'home' && multiplayer.userId) {
+        seed = [...multiplayer.userId].reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    }
+    
+    const centerX = mapSize / 2;
+    const centerY = mapSize / 2;
+    // Central island is 2.5x bigger in radius
+    const grassRadius = islandId === 'central' ? 35 : 14;
+    const sandRadius = islandId === 'central' ? 42 : 20;
+
+    for (let y = 0; y < mapSize; y++) {
+        mapData[y] = [];
+        for (let x = 0; x < mapSize; x++) {
+            const dx = x - centerX;
+            const dy = y - centerY;
+            const absDx = Math.abs(dx);
+            const absDy = Math.abs(dy);
+
+            if (absDx < grassRadius && absDy < grassRadius) {
+                mapData[y][x] = 'grass';
+                if (seededRandom() < 0.05 && absDx > 1 && absDy > 1 && !(dx === 2 && dy === grassRadius - 1) && !(dx === -5 && dy === -2)) {
+                    treeData.push({ x, y });
+                }
+            } else if (absDx === grassRadius && absDy < grassRadius) {
+                mapData[y][x] = dx < 0 ? 'grass-sand-left' : 'grass-sand-right';
+            } else if (absDy === grassRadius && absDx < grassRadius) {
+                mapData[y][x] = dy < 0 ? 'grass-sand-up' : 'grass-sand-down';
+            } else if (dx === -grassRadius && dy === -grassRadius) {
+                mapData[y][x] = 'grass-sand-diagonal';
+            } else if (dx === grassRadius && dy === -grassRadius) {
+                mapData[y][x] = 'grass-sand-diagonal_TR';
+            } else if (dx === grassRadius && dy === grassRadius) {
+                mapData[y][x] = 'grass-sand-diagonal_BR';
+            } else if (dx === -grassRadius && dy === grassRadius) {
+                mapData[y][x] = 'grass-sand-diagonal_BL';
+            } else if (absDx < sandRadius && absDy < sandRadius) {
+                mapData[y][x] = 'sand';
+            } else if (absDx === sandRadius && absDy < sandRadius) {
+                mapData[y][x] = dx < 0 ? 'wave_W' : 'wave_E';
+            } else if (absDy === sandRadius && absDx < sandRadius) {
+                mapData[y][x] = dy < 0 ? 'wave_N' : 'wave_S';
+            } else if (dx === -sandRadius && dy === -sandRadius) {
+                mapData[y][x] = 'wave4_TL';
+            } else if (dx === sandRadius && dy === -sandRadius) {
+                mapData[y][x] = 'wave4_TR';
+            } else if (dx === sandRadius && dy === sandRadius) {
+                mapData[y][x] = 'wave4_BR';
+            } else if (dx === -sandRadius && dy === sandRadius) {
+                mapData[y][x] = 'wave4_BL';
+            } else {
+                mapData[y][x] = 'water'; // Océano infinito sin olas grandes
+            }
+        }
+    }
+
+    if (islandId !== 'central') {
+        islandFeatures.house = { x: centerX - 5, y: centerY - 2 };
+    }
+
+    planeX = centerX + 2;
+    planeY = centerY + grassRadius - 2;
 }
 
 // --- SISTEMA DE DEBUG ---
