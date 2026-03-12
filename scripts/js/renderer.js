@@ -271,9 +271,11 @@ function drawSinglePalmtree(tree, tileSize) {
     ctx.drawImage(palmtreeAsset, screenX - (drawW - tileSize)/2, screenY - (drawH - tileSize), drawW, drawH);
 
     if (debug.active) {
+        const hX = screenX + palmtreeHitbox.xRel;
+        const hY = screenY + palmtreeHitbox.yRel;
         ctx.strokeStyle = "yellow";
         ctx.lineWidth = 2;
-        ctx.strokeRect(screenX + treeHitbox.xRel - treeHitbox.w / 2, screenY + treeHitbox.yRel - treeHitbox.h / 2, treeHitbox.w, treeHitbox.h);
+        ctx.strokeRect(hX - palmtreeHitbox.w / 2, hY - palmtreeHitbox.h / 2, palmtreeHitbox.w, palmtreeHitbox.h);
     }
 }
 
@@ -290,13 +292,13 @@ function drawPlayer() {
     let scaleX = 1;
     let scaleY = 1;
 
-    // Relación de aspecto original escalada por el factor de píxel
-    let baseWidth = player.width;
-    let baseHeight = player.height;
+    // Mantener relación de aspecto original (Revertido a 64px de altura base)
+    let baseHeight = 64;
+    let baseWidth = 64;
 
     if (frameData && frameData.original) {
-        baseWidth = frameData.original.width * PIXEL_SCALE;
-        baseHeight = frameData.original.height * PIXEL_SCALE;
+        const aspect = frameData.original.width / frameData.original.height;
+        baseWidth = baseHeight * aspect;
     }
 
     if (player.isMoving) {
@@ -616,12 +618,12 @@ function drawSingleOtherPlayer(uid) {
 
     let jumpOffset = 0;
     let scaleX = 1; let scaleY = 1;
-    let baseWidth = player.width;
-    let baseHeight = player.height;
+    let baseHeight = 64; 
+    let baseWidth = 64;
 
     if (frameData && frameData.original) {
-        baseWidth = frameData.original.width * PIXEL_SCALE;
-        baseHeight = frameData.original.height * PIXEL_SCALE;
+        const aspect = frameData.original.width / frameData.original.height;
+        baseWidth = baseHeight * aspect;
     }
 
     if (p.isMoving) {
@@ -733,9 +735,11 @@ function applyDayNightEffect() {
 
 function drawHouse(drawX, drawY) {
     if (houseAsset.complete && houseAsset.naturalWidth > 0) {
-        const targetW = houseAsset.naturalWidth * PIXEL_SCALE;
-        const targetH = houseAsset.naturalHeight * PIXEL_SCALE;
-        const hX = drawX - (targetW - 128) / 2; // Centrar un poco mejor respecto a la base
+        // Agrandar la casa (Factor 3.5 en vez de PIXEL_SCALE=2)
+        const HOUSE_SCALE = 3.5;
+        const targetW = houseAsset.naturalWidth * HOUSE_SCALE;
+        const targetH = houseAsset.naturalHeight * HOUSE_SCALE;
+        const hX = drawX - (targetW - 128) / 2; 
         const hY = drawY + 80 - targetH;
         
         ctx.drawImage(houseAsset, hX, hY, targetW, targetH);

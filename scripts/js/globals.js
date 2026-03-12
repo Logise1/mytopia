@@ -202,6 +202,13 @@ const houseHitbox = {
     h: 60
 };
 
+const palmtreeHitbox = {
+    xRel: 32,
+    yRel: 45,
+    w: 60,
+    h: 25
+};
+
 // Semilla para aleatoriedad consistente
 let seed = 42;
 function seededRandom() {

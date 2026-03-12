@@ -146,16 +146,36 @@ function update(dt) {
     treeData.forEach(tree => {
         const tX = tree.x * 64 + treeHitbox.xRel;
         const tY = tree.y * 64 + treeHitbox.yRel;
-
         const halfW = treeHitbox.w / 2;
         const halfH = treeHitbox.h / 2;
-
         const pWh = 5; 
         const pHh = 4; 
-
         const dx = pCenterX - tX;
         const dy = pBaseY - tY;
+        const overlapX = (halfW + pWh) - Math.abs(dx);
+        const overlapY = (halfH + pHh) - Math.abs(dy);
 
+        if (overlapX > 0 && overlapY > 0) {
+            if (overlapX < overlapY) {
+                player.x += (dx > 0 ? overlapX : -overlapX);
+                player.vx = 0;
+            } else {
+                player.y += (dy > 0 ? overlapY : -overlapY);
+                player.vy = 0;
+            }
+        }
+    });
+
+    // --- COLISIÓN CON PALMERAS ---
+    palmtreeData.forEach(tree => {
+        const tX = tree.x * 64 + palmtreeHitbox.xRel;
+        const tY = tree.y * 64 + palmtreeHitbox.yRel;
+        const halfW = palmtreeHitbox.w / 2;
+        const halfH = palmtreeHitbox.h / 2;
+        const pWh = 5; 
+        const pHh = 4; 
+        const dx = pCenterX - tX;
+        const dy = pBaseY - tY;
         const overlapX = (halfW + pWh) - Math.abs(dx);
         const overlapY = (halfH + pHh) - Math.abs(dy);
 
