@@ -450,3 +450,45 @@ canvas {
     cursor: pointer;
     font-weight: bold;
 }
+
+/* --- Minimapa de Vuelo --- */
+#flight-map-container {
+    position: relative;
+    width: 80%;
+    height: 60px;
+    margin: 20px auto;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+}
+
+#flight-path-line {
+    position: absolute;
+    top: 50%;
+    left: 40px;
+    right: 40px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.2);
+    z-index: 1;
+}
+
+.island-symbol {
+    font-size: 30px;
+    z-index: 5;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    padding: 5px;
+}
+
+#travel-plane-emoji {
+    position: absolute;
+    font-size: 24px;
+    z-index: 10;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    transition: left 0.1s linear;
+}

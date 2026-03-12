@@ -164,14 +164,33 @@ function drawPlayerShadows() {
         });
     }
 
+    if (faker && faker.active) {
+        entities.push({
+            ...faker, isLocal: false,
+            screenX: faker.x - camera.x, screenY: faker.y - camera.y,
+            u_uid: 'faker'
+        });
+    }
+
     ctx.save();
     ctx.globalAlpha = sun.alpha;
 
     entities.forEach(ent => {
         if (ent.screenX < -100 || ent.screenX > canvas.width + 100 || ent.screenY < -100 || ent.screenY > canvas.height + 100) return;
 
-        const anim = player.animations[ent.direction];
-        const frameData = anim ? anim[Math.floor(ent.frame || 0)] : null;
+        let frameData = null;
+        if (ent.u_uid === 'faker') {
+            if (faker.spawnState === 'enter1') frameData = { processed: faker.enterAssets.enter1Processed || faker.enterAssets.enter1 };
+            else if (faker.spawnState === 'enter2') frameData = { processed: faker.enterAssets.enter2Processed || faker.enterAssets.enter2 };
+            else if (faker.spawnState === 'enter3') frameData = { processed: faker.enterAssets.enter3Processed || faker.enterAssets.enter3 };
+            else {
+                const anim = faker.animations[ent.direction];
+                frameData = anim ? anim[Math.floor(ent.frame || 0)] : null;
+            }
+        } else {
+            const anim = player.animations[ent.direction];
+            frameData = anim ? anim[Math.floor(ent.frame || 0)] : null;
+        }
 
         let scaleX = 1; let scaleY = 1;
         let baseHeight = ent.height; let baseWidth = ent.width;
@@ -703,7 +722,12 @@ function drawFaker() {
         const drawW = 64; 
         const drawH = 64;
         
-        ctx.drawImage(img, screenX + (faker.width - drawW) / 2, screenY + (faker.height - drawH) + jumpY, drawW, drawH);
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        ctx.translate(screenX + (faker.width - drawW) / 2 + drawW / 2, screenY + (faker.height - drawH) + jumpY + drawH / 2);
+        
+        // Evitar el efecto aplastado/estirado excesivo, usar transformación simple
+        ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
         ctx.restore();
     } else {
         // Fallback para el Faker si no carga la imagen
@@ -831,6 +855,9 @@ function drawAirplane(drawX, drawY) {
         } else {
             return; // En el aire central no se dibuja en el mapa
         }
+    } else if (gameState === 'playing' && !currentIsland.endsWith('_inside')) {
+        // Efecto de flotar cuando está en el muelle
+        offsetY = Math.sin(Date.now() * 0.003) * 6;
     }
 
     if (planeAsset && planeAsset.complete && planeAsset.naturalWidth > 0) {

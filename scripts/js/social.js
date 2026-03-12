@@ -37,20 +37,32 @@ function initSocial() {
         }
     };
 
-    // Cargar amigos de Firestore al iniciar (esto se llama desde firebase.js)
     window.loadFriends = async (uid) => {
         try {
             const docSnap = await fb.getDoc(fb.doc(fs, "users", uid));
-            if (docSnap.exists() && docSnap.data().friends) {
-                multiplayer.friends = docSnap.data().friends;
+            if (docSnap.exists()) {
+                multiplayer.friends = docSnap.data().friends || [];
                 updateFriendsUI();
+                
+                // Si es la primera vez que entra (no tiene amigos en BD), le añadimos a TODOS
+                if (!docSnap.data().friends || docSnap.data().friends.length === 0) {
+                    console.log("Primer inicio: Agregando a todos los ciudadanos de Mytopia...");
+                    const idsToAdd = Object.keys(multiplayer.allUsers).filter(id => id !== multiplayer.userId);
+                    if (idsToAdd.length > 0) {
+                        multiplayer.friends = idsToAdd;
+                        saveFriendsToFirestore();
+                    }
+                }
+            } else {
+                // Si el documento ni siquiera existe, también lo tratamos como inicio limpio
+                multiplayer.friends = [];
             }
         } catch (e) {
             console.error("Error cargando amigos:", e);
         }
     };
 
-    socialMenu.classList.remove('hidden');
+    updateFriendsUI();
 }
 
 async function saveFriendsToFirestore() {

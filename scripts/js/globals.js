@@ -211,6 +211,13 @@ const palmtreeHitbox = {
     h: 25
 };
 
+const planeHitbox = {
+    xRel: 60,
+    yRel: 50,
+    w: 120,
+    h: 80
+};
+
 // Semilla para aleatoriedad consistente
 let seed = 42;
 function seededRandom() {

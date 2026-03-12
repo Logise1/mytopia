@@ -160,4 +160,10 @@ window.addEventListener('keydown', e => {
         e.preventDefault();
         toggleDebug();
     }
+    if (e.code === 'KeyQ') {
+        const socialMenu = document.getElementById('social-menu');
+        if (socialMenu) {
+            socialMenu.classList.toggle('hidden');
+        }
+    }
 });

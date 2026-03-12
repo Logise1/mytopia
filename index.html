@@ -60,7 +60,7 @@
         </div>
 
         <!-- Menú Social / Amigos -->
-        <div id="social-menu">
+        <div id="social-menu" class="hidden">
             <div id="social-header">Amigos Mytopianos</div>
             <div id="friends-list">
                 <!-- Se llena dinámicamente -->
@@ -95,7 +95,13 @@
             </div>
 
             <div id="travel-progress-ui" class="hidden">
-                <h2>Viajando... <span class="emoji">✈️</span></h2>
+                <div id="flight-map-container">
+                    <div class="island-symbol start-island">🏙️</div>
+                    <div id="travel-plane-emoji">✈️</div>
+                    <div class="island-symbol end-island">🏝️</div>
+                    <div id="flight-path-line"></div>
+                </div>
+                <h2>Viajando...</h2>
                 <div class="news-ticker">
                     <p>Noticias de Mytopia: ¡Se han avistado peces nuevos en el este!</p>
                 </div>
