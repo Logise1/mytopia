@@ -66,31 +66,41 @@ function drawTiles() {
                     // --- EFECTO DE OLAS GRANDES (WAVEBIG) ---
                     const isWaterTile = tileType === 'water' || tileType.includes('wave');
                     if (isWaterTile && tileAssets.wavebig && tileAssets.wavebig.complete) {
-                        // Ciclo único por tile para variedad (mx, my) para que no todas palpiten a la vez
                         const waveTime = performance.now() * 0.0012;
                         const posOffset = (mx * 0.8 + my * 1.5);
                         const cycle = waveTime + posOffset;
-                        
-                        // Transparencia (0 a 0.6) - Ondulación suave
                         const sinVal = Math.sin(cycle);
                         const alpha = (sinVal + 1) / 2 * 0.6;
                         
                         if (alpha > 0.02) {
                             ctx.save();
+                            
+                            // 1. Clipping para no salirse del tile
+                            ctx.beginPath();
+                            if (tileType === 'water') {
+                                ctx.rect(drawX, drawY, tileSize, tileSize);
+                            } else if (tileType.startsWith('wave_')) {
+                                // Olas de orilla: recortar solo la parte que tiene agua
+                                const dir = tileType.split('_')[1];
+                                if (dir === 'S') ctx.rect(drawX, drawY + tileSize/2, tileSize, tileSize/2);
+                                else if (dir === 'N') ctx.rect(drawX, drawY, tileSize, tileSize/2);
+                                else if (dir === 'W') ctx.rect(drawX, drawY, tileSize/2, tileSize);
+                                else if (dir === 'E') ctx.rect(drawX + tileSize/2, drawY, tileSize/2, tileSize);
+                                else ctx.rect(drawX, drawY, tileSize, tileSize);
+                            } else {
+                                // Para esquinas (wave4) y otros, clip estándar o podrías ser más específico
+                                ctx.rect(drawX, drawY, tileSize, tileSize);
+                            }
+                            ctx.clip();
+
                             ctx.globalAlpha = alpha;
                             
-                            // Movimiento: Se desplazan horizontalmente más (oleaje)
                             const shiftX = Math.cos(cycle * 0.7) * 15;
                             const shiftY = Math.sin(cycle * 0.4) * 4;
-                            
-                            // Aplastamiento: cuanto más transparente (sinVal bajo), más plano
-                            // El sinVal original va de -1 a 1. 
-                            const progress = (sinVal + 1) / 2; // 0 a 1
-                            const squash = 0.2 + 0.8 * progress; // De 0.2 (muy plano) a 1.0 (normal)
+                            const progress = (sinVal + 1) / 2;
+                            const squash = 0.2 + 0.8 * progress;
                             
                             ctx.translate(drawX + tileSize / 2 + shiftX, drawY + tileSize / 2 + shiftY);
-                            
-                            // Escala X un poco mayor para compensar el movimiento y que no se vea el borde
                             ctx.scale(1.2, squash);
                             
                             ctx.drawImage(tileAssets.wavebig, -tileSize / 2, -tileSize / 2, tileSize, tileSize);
