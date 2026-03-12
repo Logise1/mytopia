@@ -52,7 +52,8 @@ function generateIsland(islandId) {
                 // La zona de la casa está entre dx: -7 y -1, dy: -5 y +1
                 const isHouseArea = islandId !== 'central' && dx >= -7 && dx <= -1 && dy >= -5 && dy <= 1;
                 if (seededRandom() < 0.05 && absDx > 1 && absDy > 1 && !(dx === 2 && dy === grassRadius - 1) && !isHouseArea) {
-                    treeData.push({ x, y });
+                    const tooClose = treeData.some(t => Math.hypot(t.x - x, t.y - y) < 4);
+                    if (!tooClose) treeData.push({ x, y });
                 }
             } else if (absDx === grassRadius && absDy < grassRadius) {
                 mapData[y][x] = dx < 0 ? 'grass-sand-left' : 'grass-sand-right';
@@ -70,7 +71,8 @@ function generateIsland(islandId) {
                 mapData[y][x] = 'sand';
                 // Generar palmera ocasionalmente
                 if (seededRandom() < 0.02 && (absDx > grassRadius + 1 || absDy > grassRadius + 1)) {
-                    palmtreeData.push({ x, y });
+                    const tooClose = palmtreeData.some(p => Math.hypot(p.x - x, p.y - y) < 6);
+                    if (!tooClose) palmtreeData.push({ x, y });
                 }
             } else if (absDx === sandRadius && absDy < sandRadius) {
                 mapData[y][x] = dx < 0 ? 'wave_W' : 'wave_E';

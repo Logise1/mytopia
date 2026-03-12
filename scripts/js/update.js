@@ -21,9 +21,9 @@ function update(dt) {
             
             if (prevTimer <= takeoffTime && travelTimer > takeoffTime) {
                 generateIsland(targetTravelIsland);
-                // Mover lejos pero no borrar del todo para evitar fallos de referencia
-                player.x = -5000;
-                player.y = -5000;
+                // Mover a zona segura en lugar de coordenadas negativas extremas que pueden fallar
+                player.x = (mapSize/2)*64;
+                player.y = (mapSize/2)*64;
             }
             
             if (travelTimer >= TRAVEL_TIME) completeTravel();
@@ -275,12 +275,28 @@ function update(dt) {
                 const walkable = tile === 'grass' || tile === 'sand' || tile.includes('grass-sand') || isDockArea || isPlaneDock;
                 
                 if (!walkable) {
-                    // Empujar hacia el tile anterior con lerp suave para evitar el "salto" de 9999
-                    player.x -= player.vx * dt;
-                    player.y -= player.vy * dt;
+                    // Empujar hacia el borde del tile de forma segura
+                    const tileCenterX = tx * 64 + 32;
+                    const tileCenterY = ty * 64 + 32;
+                    const diffX = pt.x - tileCenterX;
+                    const diffY = pt.y - tileCenterY;
+                    
+                    // Solo empujamos si el resultado es una coordenada válida
+                    if (Math.abs(diffX) > Math.abs(diffY)) {
+                        const push = (diffX > 0 ? (66 - Math.abs(diffX)) : -(66 - Math.abs(diffX)));
+                        player.x += push;
+                    } else {
+                        const push = (diffY > 0 ? (66 - Math.abs(diffY)) : -(66 - Math.abs(diffY)));
+                        player.y += push;
+                    }
                     player.vx = 0;
                     player.vy = 0;
                 }
+            } else {
+                // Si por alguna razón los pies están fuera del mapa (agua infinita)
+                // Lo empujamos hacia el centro del mapa
+                player.x += (mapSize * 32 - player.x) * 0.1;
+                player.y += (mapSize * 32 - player.y) * 0.1;
             }
         });
     }

@@ -62,8 +62,8 @@ function gameLoop(currentTime) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // --- MODO VIAJE ESPECIAL (Fase Central) ---
-    const isPhase2 = gameState === 'traveling' && travelTimer > 3 && travelTimer < 27;
+    // --- MODO VIAJE ESPECIAL (Fase Central: del despegue al inicio del aterrizaje) ---
+    const isPhase2 = gameState === 'traveling' && travelTimer > 8 && travelTimer < (TRAVEL_TIME - 8);
     
     if (isPhase2) {
         if (insidePlaneAsset && insidePlaneAsset.complete && insidePlaneAsset.naturalWidth > 0) {
@@ -83,6 +83,8 @@ function gameLoop(currentTime) {
 
     // Dibujar el sistema de Sombras Raytracing primero para que se proyecten en el suelo
     drawTreeShadows();
+    drawPalmtreeShadows();
+    drawHouseShadow();
     drawPlayerShadows();
 
     // --- SISTEMA DE ORDENACIÓN (Y-SORTING) ---

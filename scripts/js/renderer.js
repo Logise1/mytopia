@@ -141,7 +141,80 @@ function drawTreeShadows() {
             ctx.restore();
         }
     });
+    ctx.restore();
+}
 
+let palmtreeShadowCanvas = null;
+function drawPalmtreeShadows() {
+    if (!tileAssets.isLoaded || !palmtreeAsset.complete || palmtreeAsset.naturalWidth === 0) return;
+    const tileSize = 64;
+
+    if (!palmtreeShadowCanvas) {
+        palmtreeShadowCanvas = document.createElement('canvas');
+        palmtreeShadowCanvas.width = palmtreeAsset.naturalWidth;
+        palmtreeShadowCanvas.height = palmtreeAsset.naturalHeight;
+        const sCtx = palmtreeShadowCanvas.getContext('2d');
+        sCtx.drawImage(palmtreeAsset, 0, 0);
+        sCtx.globalCompositeOperation = 'source-in';
+        sCtx.fillStyle = '#0f0514';
+        sCtx.fillRect(0, 0, palmtreeShadowCanvas.width, palmtreeShadowCanvas.height);
+    }
+
+    const sun = getSunlightTransform();
+    ctx.save();
+    ctx.globalAlpha = sun.alpha;
+
+    palmtreeData.forEach(tree => {
+        const drawX = tree.x * tileSize - camera.x;
+        const drawY = tree.y * tileSize - camera.y;
+
+        if (drawX > -400 && drawX < canvas.width + 400 && drawY > -400 && drawY < canvas.height + 400) {
+            const dw = palmtreeAsset.naturalWidth * PIXEL_SCALE;
+            const dh = palmtreeAsset.naturalHeight * PIXEL_SCALE;
+
+            const baseX = drawX + palmtreeHitbox.xRel;
+            const baseY = drawY + palmtreeHitbox.yRel + palmtreeHitbox.h / 2 - 10;
+
+            ctx.save();
+            ctx.translate(baseX, baseY);
+            ctx.transform(1, 0, sun.skewAmount, sun.scaleAmount, 0, 0);
+
+            const imgLeft = (drawX - (dw - tileSize) / 2) - baseX;
+            const imgTop = (drawY - (dh - tileSize)) - baseY;
+
+            ctx.drawImage(palmtreeShadowCanvas, imgLeft, imgTop, dw, dh);
+            ctx.restore();
+        }
+    });
+    ctx.restore();
+}
+
+function drawHouseShadow() {
+    if (!islandFeatures.house || !houseAsset.complete || houseAsset.naturalWidth === 0) return;
+    const hx = islandFeatures.house.x * 64 - camera.x;
+    const hy = islandFeatures.house.y * 64 - camera.y;
+    
+    const sun = getSunlightTransform();
+    ctx.save();
+    ctx.globalAlpha = sun.alpha;
+
+    const HOUSE_SCALE = 3.5;
+    const targetW = houseAsset.naturalWidth * HOUSE_SCALE;
+    const targetH = houseAsset.naturalHeight * HOUSE_SCALE;
+
+    const baseX = hx + houseHitbox.xRel;
+    const baseY = hy + houseHitbox.yRel + houseHitbox.h / 2;
+
+    ctx.save();
+    ctx.translate(baseX, baseY);
+    ctx.transform(1, 0, sun.skewAmount, sun.scaleAmount, 0, 0);
+
+    ctx.fillStyle = '#0f0514';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, targetW / 2, 40 * sun.scaleAmount, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.restore();
     ctx.restore();
 }
 
@@ -281,7 +354,8 @@ function drawSinglePalmtree(tree, tileSize) {
     const screenX = wx - camera.x;
     const screenY = wy - camera.y;
 
-    if (screenX < -256 || screenX > canvas.width || screenY < -256 || screenY > canvas.height) return;
+    // Aumentar margen de culling para que no desaparezca de golpe
+    if (screenX < -512 || screenX > canvas.width + 512 || screenY < -512 || screenY > canvas.height + 512) return;
 
     const drawW = palmtreeAsset.naturalWidth * PIXEL_SCALE;
     const drawH = palmtreeAsset.naturalHeight * PIXEL_SCALE;
@@ -718,15 +792,18 @@ function drawFaker() {
         ctx.globalAlpha = 1.0; 
         ctx.imageSmoothingEnabled = false;
 
-        // Tamaño idéntico al del jugador
-        const drawW = 64; 
-        const drawH = 64;
+        // Tamaño idéntico al del jugador (Respetando ratio original)
+        let drawH = 64; 
+        let drawW = 64;
+        const imgW = isCanvas ? img.width : img.naturalWidth;
+        const imgH = isCanvas ? img.height : img.naturalHeight;
+        if (imgH > 0) drawW = (imgW / imgH) * 64;
         
         ctx.save();
         ctx.imageSmoothingEnabled = false;
         ctx.translate(screenX + (faker.width - drawW) / 2 + drawW / 2, screenY + (faker.height - drawH) + jumpY + drawH / 2);
         
-        // Evitar el efecto aplastado/estirado excesivo, usar transformación simple
+        // Dibujado centrado para evitar efecto aplastado
         ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
         ctx.restore();
     } else {
