@@ -23,6 +23,8 @@ window.onload = async () => {
     player.x = (mapSize / 2) * 64;
     player.y = (mapSize / 2) * 64;
 
+    document.getElementById('coin-count').innerText = coinCount;
+
     // 3. Listeners
     window.addEventListener('keydown', e => keys[e.code] = true);
     window.addEventListener('keyup', e => keys[e.code] = false);
@@ -133,10 +135,31 @@ function gameLoop(currentTime) {
     if (!isInside) {
         const airplaneY = planeY * 64 + 64;
         renderList.push({ y: airplaneY, draw: () => drawAirplane(planeX * 64 - camera.x, planeY * 64 - camera.y) });
+        
+        // Cartel al lado del avión/muelle
+        const signX = (planeX - 1) * 64;
+        const signY = planeY * 64;
+        renderList.push({ y: signY + 64, draw: () => drawSign(signX - camera.x, signY - camera.y) });
+
+        // Lógica de proximidad para el cartel
+        const distSign = Math.hypot(player.x - (signX + 32), player.y - (signY + 32));
+        if (distSign < 80) {
+            let islandName = "Main Island";
+            if (currentIsland === 'home') islandName = (multiplayer.username || "Tu") + "'s Island";
+            else if (currentIsland !== 'central') {
+                islandName = currentIsland.charAt(0).toUpperCase() + currentIsland.slice(1) + "'s Island";
+            }
+            currentActionPrompt = islandName;
+        }
     } else {
         const doorY = (mapSize/2 + 5)*64;
         const doorX = (mapSize/2)*64;
         renderList.push({ y: doorY + 64, draw: () => drawInsideDoor(doorX - camera.x, doorY - camera.y, doorX, doorY) });
+    }
+
+    // Dibujar muebles si estamos dentro
+    if (isInside) {
+        renderList.push({ y: 0, draw: () => drawFurniture() }); 
     }
 
     // Ordenar y dibujar (Capa de profundidad)
@@ -195,4 +218,67 @@ window.addEventListener('keydown', e => {
             document.getElementById('auth-action-btn').click();
         }
     }
+});
+
+// --- LÓGICA DE EDITOR DE MUEBLES ---
+window.addEventListener('keydown', e => {
+    if (e.code === 'KeyE' && currentIsland.endsWith('_inside')) {
+        const editor = document.getElementById('furniture-editor');
+        editor.classList.toggle('hidden');
+    }
+});
+
+document.querySelectorAll('.furniture-item').forEach(item => {
+    item.onclick = (e) => {
+        e.stopPropagation();
+        const type = item.dataset.type;
+        const prices = { sofa: 100, table: 50, bed: 150, rug: 30 };
+        const price = prices[type];
+
+        if (coinCount >= price) {
+            coinCount -= price;
+            document.getElementById('coin-count').innerText = coinCount;
+            
+            const newF = {
+                type: type,
+                x: player.x, // Aparece donde está el jugador
+                y: player.y
+            };
+            homeFurniture.push(newF);
+            selectedFurniture = newF;
+        } else {
+            alert("¡No tienes suficientes MyMonedas! 🪙");
+        }
+    };
+});
+
+document.getElementById('close-furniture-btn').onclick = () => {
+    document.getElementById('furniture-editor').classList.add('hidden');
+    selectedFurniture = null;
+};
+
+// Arrastrar muebles
+canvas.addEventListener('mousedown', (e) => {
+    if (!currentIsland.endsWith('_inside') || document.getElementById('furniture-editor').classList.contains('hidden')) return;
+    
+    const worldX = mouseX + camera.x;
+    const worldY = mouseY + camera.y;
+
+    homeFurniture.forEach(f => {
+        const dist = Math.hypot(worldX - f.x, worldY - f.y);
+        if (dist < 40) {
+            selectedFurniture = f;
+        }
+    });
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    if (selectedFurniture) {
+        selectedFurniture.x = mouseX + camera.x;
+        selectedFurniture.y = mouseY + camera.y;
+    }
+});
+
+canvas.addEventListener('mouseup', () => {
+    selectedFurniture = null;
 });

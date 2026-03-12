@@ -5,6 +5,7 @@ function generateIsland(islandId) {
     palmtreeData.length = 0;
     islandFeatures.house = null;
     islandFeatures.dock = null;
+    if (typeof selectedFurniture !== 'undefined') selectedFurniture = null;
 
     const isInside = islandId.endsWith('_inside');
     mapSize = islandId === 'central' ? 140 : (isInside ? 30 : 100);

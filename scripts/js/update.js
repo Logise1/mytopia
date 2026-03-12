@@ -69,6 +69,8 @@ function update(dt) {
         return; // Evita actualizar físicas u otros controles mientras viajas
     }
 
+    if (gameState !== 'playing' && gameState !== 'customizing') return;
+
     let ax = 0;
     let ay = 0;
     let inputMoving = false;

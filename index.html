@@ -15,6 +15,11 @@
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
 
+        <div id="coins-hud">
+            <img src="sprites/textures/coinsicon.png" class="coin-icon" alt="Coins">
+            <span id="coin-count">500</span>
+        </div>
+
         <!-- Menú de Autenticación -->
         <div id="auth-menu">
             <div id="auth-tablon">
@@ -95,12 +100,19 @@
             </div>
 
             <div id="travel-progress-ui" class="hidden">
-                <h2>Viajando... <span class="emoji">✈️</span></h2>
-                <div class="news-ticker">
-                    <p>Noticias de Mytopia: ¡Se han avistado peces nuevos en el este!</p>
-                </div>
-                <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" id="flight-bar"></div>
+                <div class="travel-flex">
+                    <div class="travel-info">
+                        <h2>Viajando... <span class="emoji">✈️</span></h2>
+                        <div class="news-ticker">
+                            <p>Noticias de Mytopia: ¡Se han avistado peces nuevos en el este!</p>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="flight-bar"></div>
+                        </div>
+                    </div>
+                    <div class="travel-news-frame">
+                        <iframe src="https://logise1.github.io/mytopia/periodicos" frameborder="0"></iframe>
+                    </div>
                 </div>
             </div>
         </div>

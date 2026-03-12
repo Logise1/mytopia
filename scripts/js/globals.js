@@ -181,6 +181,7 @@ const planeAsset = new Image();
 const insidePlaneAsset = new Image();
 const houseAsset = new Image();
 const dockAsset = new Image();
+const signAsset = new Image();
 const fogAssets = [new Image(), new Image(), new Image()];
 let treeShadowCanvas = null;
 let mytopianFriends = []; // Array of saved friend names
@@ -246,4 +247,9 @@ const multiplayer = {
 };
 
 const skinCaches = {}; // Almacenar el spritesheet procesado para cada color de piel visto
+
+// --- ECONOMÍA Y DECORACIÓN ---
+let coinCount = 500;
+let homeFurniture = []; // [{type: 'sofa', x: 100, y: 100}]
+let selectedFurniture = null; // Mueble que estamos arrastrando o colocando
 
