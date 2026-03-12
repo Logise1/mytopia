@@ -62,37 +62,21 @@ function gameLoop(currentTime) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // --- MODO VIAJE ESPECIAL ---
-    if (gameState === 'traveling') {
-        // Cielo de viaje
-        ctx.fillStyle = worldTime >= 20 || worldTime <= 6 ? '#050528' : '#87CEEB';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Nubes o fondo
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        ctx.beginPath();
-        const cloudX = (performance.now() * 0.05) % (canvas.width + 400) - 200;
-        ctx.arc(cloudX, 150, 60, 0, Math.PI * 2);
-        ctx.arc(cloudX + 80, 150, 80, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Calcular posición del avión / transición
-        // Animado rápido cada 0.1s
-        const frameIndex = Math.floor(travelTimer * 10) % 6 + 1;
-        const flightImg = hudAssets['transition' + frameIndex];
-
-        if (flightImg && flightImg.complete) {
-            // El avión se mueve de izquierda a derecha durante los 30s
-            const flightX = (travelTimer / TRAVEL_TIME) * (canvas.width + 300) - 150;
-            const flightY = canvas.height / 2 - 100 + Math.sin(travelTimer * 2) * 20; // Movimiento ondulado
-            
-            // Dibujar grande!
-            ctx.drawImage(flightImg, flightX, flightY, 200, 200);
+    // --- MODO VIAJE ESPECIAL (Fase Central) ---
+    const isPhase2 = gameState === 'traveling' && travelTimer > 3 && travelTimer < 27;
+    
+    if (isPhase2) {
+        if (insidePlaneAsset && insidePlaneAsset.complete && insidePlaneAsset.naturalWidth > 0) {
+            // Dibujar el interior del avion ocupando toda la pantalla sin preservar aspect ratio para que cubra la UI
+            ctx.drawImage(insidePlaneAsset, 0, 0, canvas.width, canvas.height);
+        } else {
+            ctx.fillStyle = worldTime >= 20 || worldTime <= 6 ? '#050528' : '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
         if (debug.active) updateDebugPanel();
         requestAnimationFrame(gameLoop);
-        return;
+        return; // Terminamos aqui, no saltamos el renderizado del mapa
     }
 
     drawTiles();
@@ -132,7 +116,14 @@ function gameLoop(currentTime) {
     if (islandFeatures.house) {
         const hx = islandFeatures.house.x * 64;
         const hy = islandFeatures.house.y * 64;
-        renderList.push({ y: hy + 160, draw: () => drawHouse(hx - camera.x, hy - camera.y, hx, hy) });
+        renderList.push({ y: hy + 160, draw: () => drawHouse(hx - camera.x, hy - camera.y) });
+    }
+
+    if (islandFeatures.dock) {
+        const dx = islandFeatures.dock.x * 64;
+        const dy = islandFeatures.dock.y * 64;
+        // El muelle suele estar al nivel del suelo/agua, lo ponemos con un sorting Y bajo
+        renderList.push({ y: dy + 32, draw: () => drawDock(dx - camera.x, dy - camera.y) });
     }
 
     // 4. Avión / Puerta

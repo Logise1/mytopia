@@ -158,8 +158,13 @@ const palmtreeData = []; // Guardar posiciones de palmeras
 const treeAsset = new Image();
 const palmtreeAsset = new Image();
 const planeAsset = new Image();
+const insidePlaneAsset = new Image();
+const houseAsset = new Image();
+const dockAsset = new Image();
 const fogAssets = [new Image(), new Image(), new Image()];
 let treeShadowCanvas = null;
+let mytopianFriends = []; // Array of saved friend names
+let hasSetFriends = false;
 
 let currentIsland = 'home'; 
 let isTraveling = false;
@@ -168,7 +173,7 @@ let travelTimer = 0;
 const TRAVEL_TIME = 30; // Real life 30s
 let planeX = 0, planeY = 0;
 
-const islandFeatures = { house: null };
+const islandFeatures = { house: null, dock: null };
 let currentZone = '';
 let zoneMessageTimer = 0;
 

@@ -459,10 +459,10 @@ function drawHUD() {
                     const fx = player.x - faker.x;
                     const fy = player.y - faker.y;
                     const dist = Math.hypot(fx, fy);
-                    // dist max = ~1500 (pupila normal), dist min = 40 (pupila diminuta)
+                    // Rango de visión del faker aún más pequeño (antes 400, ahora 250)
                     const minSize = 8;
                     const maxSizeRange = 34 - minSize;
-                    const distRatio = Math.min(1, Math.max(0, dist / 1500));
+                    const distRatio = Math.min(1, Math.max(0, dist / 250));
                     pSize = minSize + (maxSizeRange * distRatio);
                 }
                 
@@ -659,7 +659,6 @@ function drawFaker() {
 
     if (screenX < -100 || screenX > canvas.width + 100 || screenY < -100 || screenY > canvas.height + 100) return;
 
-    let jumpOffset = 0;
     let scaleX = 1; let scaleY = 1;
     let baseHeight = faker.height; let baseWidth = faker.width;
 
@@ -668,18 +667,10 @@ function drawFaker() {
         baseWidth = baseHeight * aspect;
     }
 
-    if (faker.isMoving) {
-        const jumpProgress = (performance.now() % 500) / 500;
-        const bounce = Math.abs(Math.sin(jumpProgress * Math.PI));
-        jumpOffset = -bounce * 10;
-        const s = (bounce - 0.5) * 0.1;
-        scaleY = 1 + s; scaleX = 1 - s;
-    }
-
     const drawW = baseWidth * scaleX;
     const drawH = baseHeight * scaleY;
     const drawX = screenX + (faker.width - drawW) / 2;
-    const drawY = screenY + (faker.height - drawH) + jumpOffset;
+    const drawY = screenY + (faker.height - drawH);
 
     if (frameData && frameData.processed) {
         ctx.save();
@@ -717,34 +708,53 @@ function applyDayNightEffect() {
             
             const timeOffset = performance.now() * 0.02;
             
-            // Capa 1
-            const f1X = (timeOffset * 0.5) % (canvas.width * 2) - canvas.width;
-            ctx.drawImage(fogAssets[0], f1X, 0, canvas.width*2, canvas.height);
+            // Capa 1 (Niebla más pequeña y respetando aspecto)
+            const fSizeW = canvas.width / 4; // Mucho más pequeña (antes /2)
+            const fSizeH1 = (fogAssets[0].naturalHeight / fogAssets[0].naturalWidth) * fSizeW;
+            const f1X = (timeOffset * 0.5) % (canvas.width + fSizeW) - fSizeW;
+            ctx.drawImage(fogAssets[0], f1X, 50, fSizeW, fSizeH1);
             
             // Capa 2 inversa
-            const f2X = -(timeOffset * 0.8) % (canvas.width * 2) + canvas.width;
-            ctx.drawImage(fogAssets[1], f2X, -50, canvas.width*2, canvas.height + 100);
+            const fSizeH2 = (fogAssets[1].naturalHeight / fogAssets[1].naturalWidth) * fSizeW;
+            const f2X = -(timeOffset * 0.8) % (canvas.width + fSizeW) + canvas.width;
+            ctx.drawImage(fogAssets[1], f2X, canvas.height - fSizeH2 - 50, fSizeW, fSizeH2);
             
             ctx.restore();
         }
     }
 }
 
-function drawHouse(drawX, drawY, worldX, worldY) {
-    ctx.fillStyle = '#654321'; // paredes
-    ctx.fillRect(drawX + 10, drawY + 80, 108, 100);
-    ctx.fillStyle = '#8B0000'; // tejado
-    ctx.beginPath();
-    ctx.moveTo(drawX - 10, drawY + 80);
-    ctx.lineTo(drawX + 64, drawY);
-    ctx.lineTo(drawX + 138, drawY + 80);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#FFFFFF'; // puerta
-    ctx.fillRect(drawX + 44, drawY + 130, 40, 50);
-    ctx.fillStyle = '#add8e6'; // ventana
-    ctx.fillRect(drawX + 24, drawY + 100, 24, 24);
-    ctx.fillRect(drawX + 80, drawY + 100, 24, 24);
+function drawHouse(drawX, drawY) {
+    if (houseAsset.complete && houseAsset.naturalWidth > 0) {
+        // Mantener resolución de aspecto original
+        const targetW = 200;
+        const targetH = (houseAsset.naturalHeight / houseAsset.naturalWidth) * targetW;
+        ctx.drawImage(houseAsset, drawX - 35, drawY + 80 - targetH, targetW, targetH);
+    } else {
+        ctx.fillStyle = '#654321'; // paredes
+        ctx.fillRect(drawX + 10, drawY + 80, 108, 100);
+        ctx.fillStyle = '#8B0000'; // tejado
+        ctx.beginPath();
+        ctx.moveTo(drawX - 10, drawY + 80);
+        ctx.lineTo(drawX + 64, drawY);
+        ctx.lineTo(drawX + 138, drawY + 80);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF'; // puerta
+        ctx.fillRect(drawX + 44, drawY + 130, 40, 50);
+        ctx.fillStyle = '#add8e6'; // ventana
+        ctx.fillRect(drawX + 24, drawY + 100, 24, 24);
+        ctx.fillRect(drawX + 80, drawY + 100, 24, 24);
+    }
+}
+
+function drawDock(drawX, drawY) {
+    if (dockAsset.complete && dockAsset.naturalWidth > 0) {
+        ctx.drawImage(dockAsset, drawX, drawY, 64, 64);
+    } else {
+        ctx.fillStyle = '#5d3350';
+        ctx.fillRect(drawX, drawY, 64, 40);
+    }
 }
 
 function drawInsideDoor(drawX, drawY, worldX, worldY) {
@@ -753,16 +763,40 @@ function drawInsideDoor(drawX, drawY, worldX, worldY) {
 }
 
 function drawAirplane(drawX, drawY) {
+    let offsetX = 0;
+    let offsetY = 0;
+    let angle = 0;
+
+    if (gameState === 'traveling') {
+        if (travelTimer <= 3) {
+            const t = travelTimer / 3;
+            offsetX = t * 400; 
+            offsetY = -(t * t * 600);
+            angle = -Math.PI / 12; // Inclinado arriba
+        } else if (travelTimer >= 27) {
+            const t = (30 - travelTimer) / 3;
+            offsetX = -t * 400;
+            offsetY = -(t * t * 600);
+            angle = Math.PI / 12; // Inclinado abajo
+        } else {
+            return; // En el aire central no se dibuja en el mapa
+        }
+    }
+
     if (planeAsset && planeAsset.complete && planeAsset.naturalWidth > 0) {
         // Redimensionar mantieniendo proporciones
         let iw = 120;
         let ih = (planeAsset.naturalHeight / planeAsset.naturalWidth) * iw;
-        // Ajustamos la posición para que quede estético
-        ctx.drawImage(planeAsset, drawX - 10, drawY + 10, iw, ih);
+        
+        ctx.save();
+        ctx.translate((drawX - 10) + offsetX + iw/2, (drawY + 10) + offsetY + ih/2);
+        ctx.rotate(angle);
+        ctx.drawImage(planeAsset, -iw/2, -ih/2, iw, ih);
+        ctx.restore();
     } else {
         ctx.font = "80px Arial";
         ctx.textAlign = "center";
-        ctx.fillText("🛩️", drawX + 32, drawY + 64);
+        ctx.fillText("🛩️", drawX + 32 + offsetX, drawY + 64 + offsetY);
     }
 }
 

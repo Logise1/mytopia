@@ -1,12 +1,59 @@
 function update(dt) {
     // --- LÓGICA DE VIAJE ---
     if (gameState === 'traveling') {
+        const menuEl = document.getElementById('travel-menu');
         if (isTraveling && travelTimer > 0) {
+            let prevTimer = travelTimer;
             travelTimer += dt;
             let percent = (travelTimer / TRAVEL_TIME) * 100;
             document.getElementById('flight-bar').style.width = percent + '%';
+            
+            if (prevTimer <= 3 && travelTimer > 3) {
+                generateIsland(targetTravelIsland);
+                player.x = -9999;
+                player.y = -9999;
+            }
+            
             if (travelTimer >= TRAVEL_TIME) completeTravel();
         }
+
+        let targetCamX = camera.x;
+        let targetCamY = camera.y;
+
+        if (travelTimer <= 3) {
+            // Despegue con easing suave (slow at start and end)
+            // Usamos easeInOutQuad: t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2
+            const rawT = travelTimer / 3;
+            const t = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
+            
+            targetCamX = (planeX * 64) + (t * 400) - canvas.width / 2 + 60;
+            targetCamY = (planeY * 64) - (t * 600) - canvas.height / 2 + 60;
+            
+            if (menuEl) menuEl.classList.add('hidden');
+        } else if (travelTimer >= 27) {
+            // Aterrizaje con easing suave
+            const rawT = (30 - travelTimer) / 3;
+            const t = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
+            
+            targetCamX = (planeX * 64) - (t * 400) - canvas.width / 2 + 60;
+            targetCamY = (planeY * 64) - (t * 600) - canvas.height / 2 + 60;
+            
+            if (travelTimer - dt < 27) {
+                camera.x = targetCamX;
+                camera.y = targetCamY;
+            }
+            if (menuEl) menuEl.classList.add('hidden');
+        } else {
+            // Fase central abordo
+            if (menuEl) {
+                menuEl.classList.remove('hidden');
+                menuEl.classList.add('cabin-mode');
+            }
+        }
+        
+        camera.x += (targetCamX - camera.x) * 5 * dt;
+        camera.y += (targetCamY - camera.y) * 5 * dt;
+
         return; // Evita actualizar físicas u otros controles mientras viajas
     }
 
@@ -249,8 +296,8 @@ function update(dt) {
             }
 
             // Dañar al jugador
-            if (dist < 40) { // Muy cerca
-                stats.health -= 60 * dt; // Pierdes 60 puntos de vida por segundo
+            if (dist < 25) { // Rango menor de daño (antes 40)
+                stats.health -= 15 * dt; // Pierdes 15 puntos de vida por segundo (antes 60)
                 if (stats.health <= 0) {
                     stats.health = 0;
                     gameState = 'dead';

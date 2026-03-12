@@ -4,6 +4,7 @@ function generateIsland(islandId) {
     treeData.length = 0;
     palmtreeData.length = 0;
     islandFeatures.house = null;
+    islandFeatures.dock = null;
 
     const isInside = islandId.endsWith('_inside');
     mapSize = islandId === 'central' ? 140 : (isInside ? 30 : 100);
@@ -89,12 +90,14 @@ function generateIsland(islandId) {
         }
     }
 
-    if (islandId !== 'central') {
+    if (islandId !== 'central' && !isInside) {
         islandFeatures.house = { x: centerX - 5, y: centerY - 2 };
+        islandFeatures.dock = { x: centerX, y: centerY + sandRadius };
     }
 
+    // Poner avión a la derecha del muelle
     planeX = centerX + 2;
-    planeY = centerY + grassRadius - 2;
+    planeY = centerY + sandRadius;
 }
 
 function enterHouse(baseIslandId) {

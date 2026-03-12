@@ -214,15 +214,26 @@ canvas {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 600px;
-    height: 400px;
-    background: url('sprites/hud/selecciontablon.svg') no-repeat center;
-    background-size: 100% 100%;
+    width: 650px;
+    height: 480px;
     z-index: 500;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 40px;
+    padding: 60px;
+}
+
+#travel-menu::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 480px;
+    height: 650px;
+    background: url('sprites/hud/selecciontablon.svg') no-repeat center;
+    background-size: 100% 100%;
+    transform: translate(-50%, -50%) rotate(90deg);
+    z-index: -1;
 }
 
 #travel-content {
@@ -289,8 +300,28 @@ canvas {
 .progress-bar-fill {
     height: 100%;
     width: 0%;
-    background: #e240af;
+    background: #5d3350;
     transition: width 0.1s linear;
+}
+
+#friends-setup {
+    text-align: center;
+}
+
+#friends-setup p {
+    font-size: 18px;
+    margin-bottom: 15px;
+}
+
+#friends-input {
+    width: 80%;
+    padding: 10px;
+    font-family: "Tiny5", sans-serif;
+    font-size: 20px;
+    border: 2px solid #5d3350;
+    border-radius: 6px;
+    text-align: center;
+    margin-bottom: 20px;
 }
 
 .news-ticker {
@@ -300,4 +331,39 @@ canvas {
     color: #ffb58b;
     padding: 5px;
     border-radius: 5px;
+}
+
+#travel-menu.cabin-mode {
+    background: none;
+    top: 40px;
+    transform: translate(-50%, 0);
+    height: auto;
+    width: 80%;
+}
+
+#travel-menu.cabin-mode::before {
+    display: none;
+}
+
+#travel-menu.cabin-mode #travel-content {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+#travel-menu.cabin-mode #travel-title,
+#travel-menu.cabin-mode #friends-setup,
+#travel-menu.cabin-mode #travel-selection,
+#travel-menu.cabin-mode h2,
+#travel-menu.cabin-mode .news-ticker {
+    display: none;
+}
+
+#travel-menu.cabin-mode #travel-progress-ui {
+    display: block !important;
+}
+
+#travel-menu.cabin-mode .progress-bar-bg {
+    margin-top: 0;
+    height: 15px;
 }

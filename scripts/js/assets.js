@@ -32,6 +32,15 @@ async function loadTileAssets() {
     planeAsset.src = 'sprites/textures/plane.png';
     promises.push(new Promise(res => planeAsset.onload = res));
     
+    insidePlaneAsset.src = 'sprites/textures/insideplane.png';
+    promises.push(new Promise(res => insidePlaneAsset.onload = res));
+    
+    houseAsset.src = 'sprites/textures/casaplanta.png';
+    promises.push(new Promise(res => houseAsset.onload = res));
+    
+    dockAsset.src = 'sprites/textures/dock.png';
+    promises.push(new Promise(res => dockAsset.onload = res));
+    
     const fogFiles = ['fog 1.png', 'fog 2.png', 'fog 3.png'];
     fogFiles.forEach((fileName, i) => {
         fogAssets[i].src = `sprites/textures/${fileName}`;
