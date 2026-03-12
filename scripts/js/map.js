@@ -49,9 +49,27 @@ function generateIsland(islandId) {
 
             if (absDx < grassRadius && absDy < grassRadius) {
                 mapData[y][x] = 'grass';
+                
+                // Mytopia Plaza: Cuadrado 10x10 de ladrillos en el centro REAL de la isla central
+                if (islandId === 'central' && dx >= -5 && dx <= 4 && dy >= -5 && dy <= 4) {
+                    const bx = dx + 5; // 0 a 9
+                    const by = dy + 5; // 0 a 9
+                    
+                    if (bx === 0 && by === 0) mapData[y][x] = 'brikleftdiagonal';      // Top-Left (Left to Up)
+                    else if (bx === 9 && by === 0) mapData[y][x] = 'brikupdiagonal';   // Top-Right (Up to Rite)
+                    else if (bx === 9 && by === 9) mapData[y][x] = 'brikritediagonal'; // Bottom-Right (Rite to Down)
+                    else if (bx === 0 && by === 9) mapData[y][x] = 'brikdowndiagonal'; // Bottom-Left (Down to Left)
+                    else if (by === 0) mapData[y][x] = 'brikup';
+                    else if (by === 9) mapData[y][x] = 'brikdown';
+                    else if (bx === 0) mapData[y][x] = 'brikleft';
+                    else if (bx === 9) mapData[y][x] = 'brikrite';
+                    else mapData[y][x] = 'brik';
+                }
+
                 // La zona de la casa está entre dx: -7 y -1, dy: -5 y +1
+                const isPlazaArea = islandId === 'central' && dx >= -5 && dx <= 5 && dy >= -5 && dy <= 5;
                 const isHouseArea = islandId !== 'central' && dx >= -7 && dx <= -1 && dy >= -5 && dy <= 1;
-                if (seededRandom() < 0.05 && absDx > 1 && absDy > 1 && !(dx === 2 && dy === grassRadius - 1) && !isHouseArea) {
+                if (seededRandom() < 0.05 && absDx > 1 && absDy > 1 && !(dx === 2 && dy === grassRadius - 1) && !isHouseArea && !isPlazaArea) {
                     const tooClose = treeData.some(t => Math.hypot(t.x - x, t.y - y) < 4);
                     if (!tooClose) treeData.push({ x, y });
                 }

@@ -255,51 +255,57 @@ function update(dt) {
         }
     }
 
-    // --- COLISIÓN CON AGUA (No dejar salir de la isla) ---
-    if (!isInside) {
-        const checkPoints = [
-            { x: player.x + 24, y: player.y + player.height - 2 },
-            { x: player.x + player.width - 24, y: player.y + player.height - 2 }
-        ];
+    // --- COLISIÓN CON AGUA / PAREDES (No dejar salir de la isla o casa) ---
+    const checkPoints = [
+        { x: player.x + 22, y: player.y + player.height - 2 },
+        { x: player.x + player.width - 22, y: player.y + player.height - 2 }
+    ];
 
-        checkPoints.forEach(pt => {
-            const tx = Math.floor(pt.x / 64);
-            const ty = Math.floor(pt.y / 64);
+    checkPoints.forEach(pt => {
+        const tx = Math.floor(pt.x / 64);
+        const ty = Math.floor(pt.y / 64);
+        
+        if (ty >= 0 && ty < mapSize && tx >= 0 && tx < mapSize) {
+            const tile = mapData[ty][tx];
+            const isDockArea = islandFeatures.dock && tx === islandFeatures.dock.x && ty === islandFeatures.dock.y;
+            const isPlaneDock = tx >= planeX - 1 && tx <= planeX + 1 && ty === planeY;
             
-            // Seguridad de límites
-            if (ty >= 0 && ty < mapSize && tx >= 0 && tx < mapSize) {
-                const tile = mapData[ty][tx];
-                const isDockArea = islandFeatures.dock && tx === islandFeatures.dock.x && ty === islandFeatures.dock.y;
-                const isPlaneDock = tx >= planeX - 1 && tx <= planeX + 1 && ty === planeY;
-                
-                const walkable = tile === 'grass' || tile === 'sand' || tile.includes('grass-sand') || isDockArea || isPlaneDock;
-                
-                if (!walkable) {
-                    // Empujar hacia el borde del tile de forma segura
-                    const tileCenterX = tx * 64 + 32;
-                    const tileCenterY = ty * 64 + 32;
-                    const diffX = pt.x - tileCenterX;
-                    const diffY = pt.y - tileCenterY;
-                    
-                    // Solo empujamos si el resultado es una coordenada válida
-                    if (Math.abs(diffX) > Math.abs(diffY)) {
-                        const push = (diffX > 0 ? (66 - Math.abs(diffX)) : -(66 - Math.abs(diffX)));
-                        player.x += push;
-                    } else {
-                        const push = (diffY > 0 ? (66 - Math.abs(diffY)) : -(66 - Math.abs(diffY)));
-                        player.y += push;
-                    }
-                    player.vx = 0;
-                    player.vy = 0;
-                }
+            let walkable = false;
+            if (isInside) {
+                walkable = tile === 'woodFloor';
             } else {
-                // Si por alguna razón los pies están fuera del mapa (agua infinita)
-                // Lo empujamos hacia el centro del mapa
-                player.x += (mapSize * 32 - player.x) * 0.1;
-                player.y += (mapSize * 32 - player.y) * 0.1;
+                walkable = tile === 'grass' || tile === 'sand' || tile.startsWith('grass-sand') || 
+                           tile.startsWith('brik') || isDockArea || isPlaneDock;
             }
-        });
-    }
+            
+            if (!walkable) {
+                // Cálculo de empuje preciso para evitar teletransporte
+                const tileLeft = tx * 64;
+                const tileTop = ty * 64;
+                const tileRight = tileLeft + 64;
+                const tileBottom = tileTop + 64;
+
+                const distL = pt.x - tileLeft;
+                const distR = tileRight - pt.x;
+                const distT = pt.y - tileTop;
+                const distB = tileBottom - pt.y;
+
+                const minDist = Math.min(distL, distR, distT, distB);
+
+                if (minDist === distL) player.x -= (distL + 1);
+                else if (minDist === distR) player.x += (distR + 1);
+                else if (minDist === distT) player.y -= (distT + 1);
+                else if (minDist === distB) player.y += (distB + 1);
+
+                player.vx = 0;
+                player.vy = 0;
+            }
+        } else if (!isInside) {
+            // Fuera de límites en isla (agua infinita)
+            player.x += (mapSize * 32 - player.x) * 0.05;
+            player.y += (mapSize * 32 - player.y) * 0.05;
+        }
+    });
 
     // Actualizar Cámara de forma SUAVE (Lerp)
     const targetCamX = player.x - canvas.width / 2 + player.width / 2;

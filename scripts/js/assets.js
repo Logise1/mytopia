@@ -4,7 +4,9 @@ async function loadTileAssets() {
         'grass', 'sand', 
         'grass-sand-up', 'grass-sand-down', 'grass-sand-left', 'grass-sand-right',
         'grass-sand-diagonal',
-        'wave1', 'wave2', 'wave3', 'wave4', 'wavebig'
+        'wave1', 'wave2', 'wave3', 'wave4', 'wavebig',
+        'brik', 'brikup', 'brikdown', 'brikleft', 'brikrite',
+        'brikupdiagonal', 'brikritediagonal', 'brikdowndiagonal', 'brikleftdiagonal'
     ];
 
     files.forEach(name => {

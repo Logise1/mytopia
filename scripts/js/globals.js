@@ -159,6 +159,15 @@ const tileAssets = {
     'wave3': new Image(),
     'wave4': new Image(),
     'wavebig': new Image(),
+    'brik': new Image(),
+    'brikup': new Image(),
+    'brikdown': new Image(),
+    'brikleft': new Image(),
+    'brikrite': new Image(),
+    'brikupdiagonal': new Image(),
+    'brikritediagonal': new Image(),
+    'brikdowndiagonal': new Image(),
+    'brikleftdiagonal': new Image(),
     isLoaded: false
 };
 
