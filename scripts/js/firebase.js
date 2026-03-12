@@ -243,7 +243,8 @@ async function saveFurniture() {
     try {
         await fb.setDoc(fb.doc(fs, "furniture", multiplayer.userId), {
             items: homeFurniture,
-            coins: coinCount
+            coins: coinCount,
+            wallPhotoId: houseWallPhotoId
         });
     } catch (e) {
         console.error("Error salvando muebles:", e);
@@ -256,6 +257,10 @@ async function loadFurniture(ownerUid) {
         const docSnap = await fb.getDoc(fb.doc(fs, "furniture", ownerUid));
         if (docSnap.exists()) {
             homeFurniture = docSnap.data().items || [];
+            houseWallPhotoId = docSnap.data().wallPhotoId || null;
+            if (houseWallPhotoId) loadWallPhoto(houseWallPhotoId);
+            else houseWallPhotoImage = null;
+
             if (ownerUid === multiplayer.userId) {
                 coinCount = docSnap.data().coins || 500;
                 document.getElementById('coin-count').innerText = coinCount;
@@ -264,5 +269,55 @@ async function loadFurniture(ownerUid) {
     } catch (e) {
         console.error("Error cargando muebles:", e);
     }
+}
+
+// --- LÓGICA DE FOTOS PIXELADAS ---
+async function uploadPhoto(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('https://greenbase.arielcapdevila.com/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            houseWallPhotoId = data.id;
+            await loadWallPhoto(houseWallPhotoId);
+            saveFurniture(); 
+        } else {
+            alert("Error al subir la foto.");
+        }
+    } catch (e) {
+        console.error('Error uploading photo:', e);
+    }
+}
+
+async function loadWallPhoto(id) {
+    if (!id) return;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = `https://greenbase.arielcapdevila.com/file/${id}`;
+    img.onload = () => {
+        houseWallPhotoImage = pixelateImage(img, 4); 
+    };
+}
+
+function pixelateImage(image, pixelSize) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const w = image.width;
+    const h = image.height;
+    
+    const sw = Math.ceil(w / pixelSize);
+    const sh = Math.ceil(h / pixelSize);
+    canvas.width = sw;
+    canvas.height = sh;
+    
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(image, 0, 0, sw, sh);
+    return canvas;
 }
 

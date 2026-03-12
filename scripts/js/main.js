@@ -52,7 +52,6 @@ function gameLoop(currentTime) {
     lastTime = currentTime;
 
     update(deltaTime);
-    applyChromaticAberration();
 
     // Actualizar otros jugadores (LERP y Anim) con mayor factor para suavidad
     for (let uid in multiplayer.players) {
@@ -167,6 +166,9 @@ function gameLoop(currentTime) {
 
     // Dibujar muebles si estamos dentro
     if (isInside) {
+        const photoWallY = (mapSize/2 - 5) * 64;
+        renderList.push({ y: photoWallY - 200, draw: () => drawHouseWallPhoto() });
+
         homeFurniture.forEach(f => {
             renderList.push({ y: f.y, draw: () => drawFurnitureSingle(f) }); 
         });
@@ -313,10 +315,21 @@ document.getElementById('close-f-color-menu').addEventListener('click', () => {
 
 // Arrastrar muebles
 canvas.addEventListener('mousedown', (e) => {
-    if (!currentIsland.includes('_inside') || document.getElementById('furniture-editor').classList.contains('hidden')) return;
-    
     const worldX = mouseX + camera.x;
     const worldY = mouseY + camera.y;
+
+    // Interacción con pared de foto
+    if (currentIsland.includes('_inside')) {
+        const photoX = (mapSize/2)*64;
+        const photoY = (mapSize/2 - 5)*64;
+        // Si clickeamos cerca de la pared del fondo
+        if (worldX >= photoX - 160 && worldX <= photoX + 160 && worldY >= photoY - 128 && worldY <= photoY + 64) {
+             document.getElementById('photo-upload-input').click();
+             return; // No mover muebles si clickeamos la pared
+        }
+    }
+
+    if (document.getElementById('furniture-editor').classList.contains('hidden')) return;
 
     homeFurniture.forEach(f => {
         // Detección de colisión según tipo
@@ -350,4 +363,12 @@ canvas.addEventListener('mouseup', () => {
         saveFurniture(); // Guardar al soltar
     }
     selectedFurniture = null;
+});
+
+// Listener para el input de fotos
+document.getElementById('photo-upload-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        uploadPhoto(file);
+    }
 });

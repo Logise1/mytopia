@@ -108,16 +108,22 @@ function drawTiles() {
                         }
                     }
                 } else {
-                     if (tileType === 'black') ctx.fillStyle = '#111';
-                     else if (tileType === 'woodFloor') ctx.fillStyle = '#654321';
-                     else ctx.fillStyle = tileType.includes('grass') ? '#2d5a27' : ((tileType.includes('water') || tileType.includes('wave')) ? '#0f5e9c' : '#d2b48c');
-                     
-                     ctx.fillRect(drawX, drawY, tileSize, tileSize);
-                     
-                     if (tileType === 'woodFloor') {
-                         ctx.strokeStyle = '#5c3a1e';
-                         ctx.lineWidth = 2;
-                         ctx.strokeRect(drawX, drawY, tileSize, tileSize);
+                     if (tileType === 'black') {
+                         ctx.fillStyle = '#111';
+                         ctx.fillRect(drawX, drawY, tileSize, tileSize);
+                     } else if (tileType === 'woodFloor') {
+                         if (floorTileAsset.complete && floorTileAsset.naturalWidth > 0) {
+                             ctx.drawImage(floorTileAsset, drawX, drawY, tileSize, tileSize);
+                         } else {
+                             ctx.fillStyle = '#654321';
+                             ctx.fillRect(drawX, drawY, tileSize, tileSize);
+                             ctx.strokeStyle = '#5c3a1e';
+                             ctx.lineWidth = 2;
+                             ctx.strokeRect(drawX, drawY, tileSize, tileSize);
+                         }
+                     } else {
+                         ctx.fillStyle = tileType.includes('grass') ? '#2d5a27' : ((tileType.includes('water') || tileType.includes('wave')) ? '#0f5e9c' : '#d2b48c');
+                         ctx.fillRect(drawX, drawY, tileSize, tileSize);
                      }
                 }
             } else {
@@ -1280,4 +1286,29 @@ function drawMinimapArrow(worldX, worldY, direction, color, isLocal) {
     }
 
     minimapCtx.restore();
+}
+
+// --- DIBUJO DE FOTO EN PARED ---
+function drawHouseWallPhoto() {
+    if (!currentIsland.includes('_inside') || !houseWallPhotoImage) return;
+    
+    // Posición central al fondo de la casa
+    const photoX = (mapSize/2) * 64;
+    const photoY = (mapSize/2 - 5) * 64;
+    
+    // Dibujar un marco simple
+    const frameW = 256 + 10;
+    const frameH = 192 + 10;
+    const dx = photoX - 128 - camera.x;
+    const dy = photoY - 160 - camera.y;
+
+    ctx.fillStyle = '#3a2614'; // Marco de madera oscura
+    ctx.fillRect(dx - 5, dy - 5, frameW, frameH);
+    
+    ctx.fillStyle = '#000';
+    ctx.fillRect(dx, dy, 256, 192);
+
+    // Dibujar la imagen pixelada
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(houseWallPhotoImage, dx, dy, 256, 192);
 }

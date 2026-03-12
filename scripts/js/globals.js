@@ -186,6 +186,7 @@ const insidePlaneAsset = new Image();
 const houseAsset = new Image();
 const dockAsset = new Image();
 const signAsset = new Image();
+const floorTileAsset = new Image();
 const furnitureAssets = {
     sofa: new Image(),
     isLoaded: false
@@ -268,6 +269,8 @@ const skinCaches = {}; // Almacenar el spritesheet procesado para cada color de 
 // --- ECONOMÍA Y DECORACIÓN ---
 let coinCount = 500;
 let homeFurniture = []; // [{type: 'sofa', x: 100, y: 100}]
+let houseWallPhotoId = null; 
+let houseWallPhotoImage = new Image();
 let selectedFurniture = null; // Mueble que estamos arrastrando
 let editingFurniture = null;  // Mueble seleccionado para cambiar propiedades (color/borrar)
 

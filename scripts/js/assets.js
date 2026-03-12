@@ -45,6 +45,9 @@ async function loadTileAssets() {
 
     signAsset.src = 'sprites/textures/sign.png';
     promises.push(new Promise(res => signAsset.onload = res));
+
+    floorTileAsset.src = 'sprites/textures/home/suelotile.png';
+    promises.push(new Promise(res => floorTileAsset.onload = res));
     
     const fogFiles = ['fog 1.png', 'fog 2.png', 'fog 3.png'];
     fogFiles.forEach((fileName, i) => {
