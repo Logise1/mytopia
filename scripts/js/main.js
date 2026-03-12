@@ -46,6 +46,7 @@ function gameLoop(currentTime) {
     lastTime = currentTime;
 
     update(deltaTime);
+    applyChromaticAberration();
 
     // Actualizar otros jugadores (LERP y Anim)
     for (let uid in multiplayer.players) {

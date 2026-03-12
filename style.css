@@ -554,15 +554,20 @@ canvas {
 }
 
 #inventory-hud img {
-    width: 64px;
-    height: auto; /* Mantener aspecto */
-    max-height: 64px;
+    width: 128px; /* Mucho más grande */
+    height: auto;
+    max-height: 128px;
     image-rendering: pixelated;
     object-fit: contain;
 }
 
 #inventory-hud:hover {
-    transform: scale(1.1);
+    transform: scale(1.05); /* Escala más sutil ya que es grande */
+}
+
+/* Filtro para Aberración Cromática */
+#gameCanvas {
+    /* El valor de los filtros se actualizará dinámicamente desde JS */
 }
 
 /* --- EDITOR DE MUEBLES --- */

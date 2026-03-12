@@ -1036,3 +1036,28 @@ function drawFurnitureSingle(f) {
 
     ctx.restore();
 }
+function applyChromaticAberration() {
+    if (!faker.active || faker.spawnState === 'hidden') {
+        canvas.style.filter = 'none';
+        return;
+    }
+
+    const dist = Math.hypot(player.x - faker.x, player.y - faker.y);
+    const maxDist = 800;
+    
+    if (dist < maxDist) {
+        // Cuanto más cerca, más fuerte el efecto
+        const intensity = (1 - dist / maxDist);
+        const shift = intensity * 15; // Desplazamiento máximo de 15px
+        
+        // Simulación de aberración usando sombras de colores desplazadas (ya que no hay shader)
+        // O mejor, usando filtros de drop-shadow múltiples que emulan los canales R y B
+        canvas.style.filter = `
+            drop-shadow(${shift}px 0px 0px rgba(255,0,0,${intensity * 0.5})) 
+            drop-shadow(${-shift}px 0px 0px rgba(0,255,255,${intensity * 0.5}))
+            contrast(${100 + intensity * 50}%)
+        `;
+    } else {
+        canvas.style.filter = 'none';
+    }
+}
