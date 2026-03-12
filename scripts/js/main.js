@@ -254,7 +254,7 @@ document.querySelectorAll('.furniture-item').forEach(item => {
             };
             homeFurniture.push(newF);
             selectedFurniture = newF;
-            editingFurniture = newF;
+            // No ponemos editingFurniture aquí para que no salga el borde amarillo nada más comprar
             saveFurniture(); // Guardar al comprar
         } else {
             alert("¡No tienes suficientes MyMonedas! 🪙");
@@ -295,6 +295,7 @@ document.getElementById('delete-furniture-btn').addEventListener('click', () => 
         editingFurniture = null;
         selectedFurniture = null;
         document.getElementById('furniture-color-menu').classList.add('hidden');
+        document.getElementById('furniture-editor').classList.add('hidden'); // Cerrar el decorador también
         saveFurniture();
     }
 });

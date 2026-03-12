@@ -56,7 +56,7 @@ canvas {
     color: #5d3350;
     text-align: center;
     transition: opacity 0.5s ease-out, transform 0.5s ease-out;
-    z-index: 100;
+    z-index: 1500; /* Por encima de todo, incluido el editor de muebles */
     filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
 }
 
