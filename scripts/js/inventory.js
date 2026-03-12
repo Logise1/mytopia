@@ -1,3 +1,6 @@
+window.toggleInventory = toggleInventory;
+window.updateCharacterPreview = updateCharacterPreview;
+
 function toggleInventory() {
     const invMenu = document.getElementById('inventory-menu');
     if (!invMenu) return;
@@ -14,38 +17,50 @@ function toggleInventory() {
 
 function updateCharacterPreview() {
     const previewCanvas = document.getElementById('character-preview-canvas');
-    if (!previewCanvas) return;
+    if (!previewCanvas || document.getElementById('inventory-menu').classList.contains('hidden')) return;
+    
     const pCtx = previewCanvas.getContext('2d');
     pCtx.imageSmoothingEnabled = false;
     pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
 
     // Get animations for current skin
     const animSet = getSkinAnimations(skinColor);
-    const anim = animSet['forward']; // Always show forward in preview
-    const frameData = anim ? anim[0] : null;
+    const anim = animSet['forward']; 
+    
+    // Usar el frame actual del jugador para que esté animado
+    const currentFrame = Math.floor(player.frame) % 6;
+    const frameData = anim ? anim[currentFrame] : null;
 
     if (frameData && (frameData.processed || frameData.original)) {
         const img = frameData.processed || frameData.original;
         
-        // Center and scale up in preview
-        const scale = 2;
-        const dw = 64 * scale;
-        const dh = 64 * scale;
+        // Mantener relación de aspecto correcta (no aplastar)
+        let baseHeight = 64;
+        let baseWidth = 64;
+        
+        if (frameData.original) {
+            const aspect = frameData.original.width / frameData.original.height;
+            baseWidth = baseHeight * aspect;
+        }
+
+        // Escalar para el preview
+        const scale = 2.2;
+        const dw = baseWidth * scale;
+        const dh = baseHeight * scale;
+        
+        // Efecto de bounce ligero (opcional, para que se vea "vivo")
+        const bounce = Math.sin(performance.now() * 0.005) * 5;
+        
         const dx = (previewCanvas.width - dw) / 2;
-        const dy = (previewCanvas.height - dh) / 2;
+        const dy = (previewCanvas.height - dh) / 2 + bounce;
         
         pCtx.drawImage(img, dx, dy, dw, dh);
     } else {
-        // Fallback robusto: círculo con el color de piel
+        // Fallback: Piel
         pCtx.fillStyle = skinColor || '#ffdbac';
         pCtx.beginPath();
         pCtx.arc(previewCanvas.width/2, previewCanvas.height/2, 44, 0, Math.PI * 2);
         pCtx.fill();
-        
-        // Ojos
-        pCtx.fillStyle = '#000000';
-        pCtx.fillRect(previewCanvas.width/2 - 15, previewCanvas.height/2 - 10, 8, 8);
-        pCtx.fillRect(previewCanvas.width/2 + 7, previewCanvas.height/2 - 10, 8, 8);
     }
 }
 

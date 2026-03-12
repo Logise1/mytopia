@@ -174,6 +174,7 @@ function gameLoop(currentTime) {
     applyDayNightEffect();
     drawHUD();
     drawInteractionPrompt();
+    if (window.updateCharacterPreview) window.updateCharacterPreview();
 
     // Sincronización
     sendMovement();
