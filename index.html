@@ -97,15 +97,42 @@
             </div>
         </div>
 
-        <!-- Menú Social / Amigos -->
-        <div id="social-menu" class="hidden">
-            <div id="social-header">Amigos Mytopianos</div>
-            <div id="friends-list">
-                <!-- Se llena dinámicamente -->
+        <!-- Menú de Inventario -->
+        <div id="inventory-menu" class="hidden">
+            <div class="inventory-clouds">
+                <div class="cloud t-l"></div>
+                <div class="cloud t-r"></div>
+                <div class="cloud b-l"></div>
+                <div class="cloud b-r"></div>
             </div>
-            <div id="social-search">
-                <input type="text" id="friend-search-input" placeholder="Buscar usuario...">
-                <button id="add-friend-btn">+</button>
+            
+            <div class="inventory-layout">
+                <div class="inventory-left">
+                    <div class="inventory-grid" id="main-inventory-grid">
+                        <!-- 12 slots -->
+                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
+                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
+                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
+                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
+                    </div>
+                    
+                    <div class="inventory-hotbar" id="inventory-hotbar">
+                        <!-- 5 slots -->
+                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
+                    </div>
+                </div>
+                
+                <div class="inventory-right">
+                    <div class="character-preview-box">
+                        <canvas id="character-preview-canvas" width="128" height="128"></canvas>
+                        <div class="char-name-tag"></div>
+                    </div>
+                    
+                    <div class="mission-box">
+                        <span class="mission-label">ACTUAL MISSION:</span>
+                        <p class="mission-text">SURVIVE THE NIGHT</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -189,6 +216,7 @@
     <script src="scripts/js/update.js"></script>
     <script src="scripts/js/travel.js"></script>
     <script src="scripts/js/debug.js"></script>
+    <script src="scripts/js/inventory.js"></script>
     <script src="scripts/js/main.js"></script>
 </body>
 

@@ -565,9 +565,9 @@ canvas {
     transform: scale(1.05); /* Escala más sutil ya que es grande */
 }
 
-/* Filtro para Aberración Cromática */
+/* Canvas styling */
 #gameCanvas {
-    /* El valor de los filtros se actualizará dinámicamente desde JS */
+    display: block;
 }
 
 /* --- EDITOR DE MUEBLES --- */
@@ -653,4 +653,195 @@ canvas {
     text-align: center;
     font-style: italic;
     color: #5d3350;
+}
+
+/* --- MENÚ DE INVENTARIO --- */
+#inventory-menu {
+    position: absolute;
+    top: -650px; /* Mas arriba para asegurar que oculte bien */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 720px;
+    height: 520px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    border: 4px solid #fff;
+    border-radius: 24px;
+    z-index: 2000;
+    transition: top 0.6s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.3s;
+    padding: 30px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+}
+
+#inventory-menu:not(.hidden) {
+    top: 40px;
+    opacity: 1;
+}
+
+.inventory-layout {
+    display: flex;
+    gap: 30px;
+    height: 100%;
+}
+
+.inventory-left {
+    flex: 1.2;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.inventory-right {
+    flex: 0.8;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    border-radius: 16px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    flex-grow: 1;
+}
+
+.inventory-hotbar {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 16px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.inv-slot {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 8px;
+    aspect-ratio: 1;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    image-rendering: pixelated;
+}
+
+.inv-slot:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: #fff;
+    transform: translateY(-2px);
+}
+
+.character-preview-box {
+    background: rgba(0, 0, 0, 0.2);
+    border: 3px solid #fff;
+    border-radius: 16px;
+    height: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 20px;
+}
+
+#character-preview-canvas {
+    image-rendering: pixelated;
+    width: 140px;
+    height: 140px;
+}
+
+#inventory-menu .char-name-tag {
+    margin-top: 10px;
+    font-size: 24px;
+    color: #fff;
+    font-family: "Jacquard 12", serif;
+}
+
+.mission-box {
+    background: #000;
+    border: 3px solid #fff;
+    border-radius: 12px;
+    padding: 15px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.mission-label {
+    color: #ffb58b;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.mission-text {
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* Nubes decorativas */
+.inventory-clouds {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+}
+
+.inventory-clouds .cloud {
+    position: absolute;
+    width: 60px;
+    height: 35px;
+    background: #fff;
+    border-radius: 20px;
+    opacity: 0.95;
+    z-index: 2005;
+    filter: drop-shadow(0 4px 5px rgba(0,0,0,0.3));
+    animation: cloudFloat 4s ease-in-out infinite;
+}
+
+@keyframes cloudFloat {
+    0%, 100% { transform: translateY(0) scale(1.05); }
+    50% { transform: translateY(-5px) scale(1); }
+}
+
+.inventory-clouds .cloud::before,
+.inventory-clouds .cloud::after {
+    content: "";
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.inventory-clouds .cloud::before {
+    width: 30px; height: 30px;
+    top: -15px; left: 10px;
+}
+
+.inventory-clouds .cloud::after {
+    width: 25px; height: 25px;
+    top: -10px; right: 8px;
+}
+
+.cloud.t-l { top: -15px; left: -20px; animation-delay: 0s; }
+.cloud.t-r { top: -15px; right: -20px; animation-delay: 1s; }
+.cloud.b-l { bottom: -15px; left: -20px; animation-delay: 2s; }
+.cloud.b-r { bottom: -15px; right: -20px; animation-delay: 0.5s; }
+
+.inv-slot::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%);
+    pointer-events: none;
 }
