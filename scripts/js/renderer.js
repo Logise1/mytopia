@@ -62,6 +62,41 @@ function drawTiles() {
                     } else {
                         ctx.drawImage(img, drawX, drawY, tileSize, tileSize);
                     }
+
+                    // --- EFECTO DE OLAS GRANDES (WAVEBIG) ---
+                    const isWaterTile = tileType === 'water' || tileType.includes('wave');
+                    if (isWaterTile && tileAssets.wavebig && tileAssets.wavebig.complete) {
+                        // Ciclo único por tile para variedad (mx, my) para que no todas palpiten a la vez
+                        const waveTime = performance.now() * 0.0012;
+                        const posOffset = (mx * 0.8 + my * 1.5);
+                        const cycle = waveTime + posOffset;
+                        
+                        // Transparencia (0 a 0.6) - Ondulación suave
+                        const sinVal = Math.sin(cycle);
+                        const alpha = (sinVal + 1) / 2 * 0.6;
+                        
+                        if (alpha > 0.02) {
+                            ctx.save();
+                            ctx.globalAlpha = alpha;
+                            
+                            // Movimiento: Se desplazan horizontalmente más (oleaje)
+                            const shiftX = Math.cos(cycle * 0.7) * 15;
+                            const shiftY = Math.sin(cycle * 0.4) * 4;
+                            
+                            // Aplastamiento: cuanto más transparente (sinVal bajo), más plano
+                            // El sinVal original va de -1 a 1. 
+                            const progress = (sinVal + 1) / 2; // 0 a 1
+                            const squash = 0.2 + 0.8 * progress; // De 0.2 (muy plano) a 1.0 (normal)
+                            
+                            ctx.translate(drawX + tileSize / 2 + shiftX, drawY + tileSize / 2 + shiftY);
+                            
+                            // Escala X un poco mayor para compensar el movimiento y que no se vea el borde
+                            ctx.scale(1.2, squash);
+                            
+                            ctx.drawImage(tileAssets.wavebig, -tileSize / 2, -tileSize / 2, tileSize, tileSize);
+                            ctx.restore();
+                        }
+                    }
                 } else {
                      if (tileType === 'black') ctx.fillStyle = '#111';
                      else if (tileType === 'woodFloor') ctx.fillStyle = '#654321';
