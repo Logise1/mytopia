@@ -90,8 +90,10 @@ function generateIsland(islandId) {
         }
     }
 
-    if (islandId !== 'central' && !isInside) {
-        islandFeatures.house = { x: centerX - 5, y: centerY - 2 };
+    if (!isInside) {
+        if (islandId !== 'central') {
+            islandFeatures.house = { x: centerX - 5, y: centerY - 2 };
+        }
         islandFeatures.dock = { x: centerX, y: centerY + sandRadius };
     }
 

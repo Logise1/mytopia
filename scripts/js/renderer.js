@@ -238,8 +238,8 @@ function drawSingleTree(tree, tileSize) {
 
     // Solo dibujar si está cerca de la pantalla
     if (drawX > -tileSize * 4 && drawX < canvas.width + tileSize * 4 && drawY > -tileSize * 6 && drawY < canvas.height + tileSize * 4) {
-        const treeW = tileSize * 2.5;
-        const treeH = tileSize * 3.0;
+        const treeW = treeAsset.naturalWidth * PIXEL_SCALE;
+        const treeH = treeAsset.naturalHeight * PIXEL_SCALE;
         ctx.drawImage(treeAsset, drawX - (treeW - tileSize) / 2, drawY - (treeH - tileSize), treeW, treeH);
 
         // Visualizar Hitbox si está en modo Debug
@@ -264,8 +264,11 @@ function drawSinglePalmtree(tree, tileSize) {
 
     if (screenX < -256 || screenX > canvas.width || screenY < -256 || screenY > canvas.height) return;
 
+    const drawW = palmtreeAsset.naturalWidth * PIXEL_SCALE;
+    const drawH = palmtreeAsset.naturalHeight * PIXEL_SCALE;
+
     // Dibujar palmera normal desde su base
-    ctx.drawImage(palmtreeAsset, screenX - 64, screenY - 128, 192, 192);
+    ctx.drawImage(palmtreeAsset, screenX - (drawW - tileSize)/2, screenY - (drawH - tileSize), drawW, drawH);
 
     if (debug.active) {
         ctx.strokeStyle = "yellow";
@@ -287,13 +290,13 @@ function drawPlayer() {
     let scaleX = 1;
     let scaleY = 1;
 
-    // Mantener relación de aspecto original
-    let baseHeight = player.height;
+    // Relación de aspecto original escalada por el factor de píxel
     let baseWidth = player.width;
+    let baseHeight = player.height;
 
     if (frameData && frameData.original) {
-        const aspect = frameData.original.width / frameData.original.height;
-        baseWidth = baseHeight * aspect;
+        baseWidth = frameData.original.width * PIXEL_SCALE;
+        baseHeight = frameData.original.height * PIXEL_SCALE;
     }
 
     if (player.isMoving) {
@@ -613,11 +616,12 @@ function drawSingleOtherPlayer(uid) {
 
     let jumpOffset = 0;
     let scaleX = 1; let scaleY = 1;
-    let baseHeight = player.height; let baseWidth = player.width;
+    let baseWidth = player.width;
+    let baseHeight = player.height;
 
     if (frameData && frameData.original) {
-        const aspect = frameData.original.width / frameData.original.height;
-        baseWidth = baseHeight * aspect;
+        baseWidth = frameData.original.width * PIXEL_SCALE;
+        baseHeight = frameData.original.height * PIXEL_SCALE;
     }
 
     if (p.isMoving) {
@@ -646,45 +650,48 @@ function drawSingleOtherPlayer(uid) {
 }
 
 function drawFaker() {
-    if (!faker.active) return;
+    if (!faker.active || faker.spawnState === 'hidden') return;
     
-    // Obtenemos los colores del monstrou usando el color de la piel del jugador
-    const animSet = getFakerSkinAnimations(skinColor);
-    const anim = animSet[faker.direction];
-    if (!anim) return;
-    const frameData = anim[Math.floor(faker.frame)];
-
     const screenX = faker.x - camera.x;
     const screenY = faker.y - camera.y;
+    if (screenX < -200 || screenX > canvas.width + 200 || screenY < -200 || screenY > canvas.height + 200) return;
 
-    if (screenX < -100 || screenX > canvas.width + 100 || screenY < -100 || screenY > canvas.height + 100) return;
+    let img = null;
+    let jumpY = 0;
+    let baseWidth = faker.width;
+    let baseHeight = faker.height;
 
-    let scaleX = 1; let scaleY = 1;
-    let baseHeight = faker.height; let baseWidth = faker.width;
-
-    if (frameData && frameData.original) {
-        const aspect = frameData.original.width / frameData.original.height;
-        baseWidth = baseHeight * aspect;
+    if (faker.spawnState === 'enter1') {
+        img = faker.enterAssets.enter1;
+    } else if (faker.spawnState === 'enter2') {
+        img = faker.enterAssets.enter2;
+        // Salto de 0.5s: usar onda seno para el arco del salto
+        const jumpProgress = (0.5 - faker.spawnTimer) / 0.5;
+        jumpY = -Math.sin(jumpProgress * Math.PI) * 40;
+    } else if (faker.spawnState === 'enter3') {
+        img = faker.enterAssets.enter3;
+    } else {
+        const animSet = getFakerSkinAnimations(skinColor);
+        const anim = animSet[faker.direction];
+        if (!anim) return;
+        const frameData = anim[Math.floor(faker.frame)];
+        if (frameData) img = frameData.processed || frameData.original;
     }
 
-    const drawW = baseWidth * scaleX;
-    const drawH = baseHeight * scaleY;
-    const drawX = screenX + (faker.width - drawW) / 2;
-    const drawY = screenY + (faker.height - drawH);
-
-    if (frameData && frameData.processed) {
+    if (img && img.complete) {
         ctx.save();
-        // Casi invisible ("No debes de verle") excepto un rastro translúcido oscuro
-        ctx.globalAlpha = 0.8; 
+        ctx.globalAlpha = 0.8;
         ctx.imageSmoothingEnabled = false;
+
+        // Mantener escala de píxel constante (PIXEL_SCALE)
+        // Si el asset es p.ej. 32x32, con PIXEL_SCALE=2 se dibuja a 64x64
+        const drawW = img.naturalWidth * PIXEL_SCALE;
+        const drawH = img.naturalHeight * PIXEL_SCALE;
         
-        // Draw the faker
-        ctx.drawImage(frameData.processed, drawX, drawY, drawW, drawH);
-        
+        ctx.drawImage(img, screenX + (faker.width - drawW) / 2, screenY + (faker.height - drawH) + jumpY, drawW, drawH);
         ctx.restore();
     }
-}
-
+}      
 function applyDayNightEffect() {
     let opacity = 0;
     if (worldTime >= 18 && worldTime <= 21) {
@@ -726,10 +733,21 @@ function applyDayNightEffect() {
 
 function drawHouse(drawX, drawY) {
     if (houseAsset.complete && houseAsset.naturalWidth > 0) {
-        // Mantener resolución de aspecto original
-        const targetW = 200;
-        const targetH = (houseAsset.naturalHeight / houseAsset.naturalWidth) * targetW;
-        ctx.drawImage(houseAsset, drawX - 35, drawY + 80 - targetH, targetW, targetH);
+        const targetW = houseAsset.naturalWidth * PIXEL_SCALE;
+        const targetH = houseAsset.naturalHeight * PIXEL_SCALE;
+        const hX = drawX - (targetW - 128) / 2; // Centrar un poco mejor respecto a la base
+        const hY = drawY + 80 - targetH;
+        
+        ctx.drawImage(houseAsset, hX, hY, targetW, targetH);
+        
+        // Aplicar tinte si existe
+        if (houseColor && houseColor !== 'none') {
+            ctx.save();
+            ctx.globalCompositeOperation = 'source-atop';
+            ctx.fillStyle = houseColor;
+            ctx.fillRect(hX, hY, targetW, targetH);
+            ctx.restore();
+        }
     } else {
         ctx.fillStyle = '#654321'; // paredes
         ctx.fillRect(drawX + 10, drawY + 80, 108, 100);
@@ -750,10 +768,14 @@ function drawHouse(drawX, drawY) {
 
 function drawDock(drawX, drawY) {
     if (dockAsset.complete && dockAsset.naturalWidth > 0) {
-        ctx.drawImage(dockAsset, drawX, drawY, 64, 64);
+        const dockW = dockAsset.naturalWidth * PIXEL_SCALE;
+        const dockH = dockAsset.naturalHeight * PIXEL_SCALE;
+        // Tiled 2 times downwards
+        ctx.drawImage(dockAsset, drawX, drawY, dockW, dockH);
+        ctx.drawImage(dockAsset, drawX, drawY + dockH, dockW, dockH);
     } else {
         ctx.fillStyle = '#5d3350';
-        ctx.fillRect(drawX, drawY, 64, 40);
+        ctx.fillRect(drawX, drawY, 64, 120);
     }
 }
 
@@ -768,15 +790,18 @@ function drawAirplane(drawX, drawY) {
     let angle = 0;
 
     if (gameState === 'traveling') {
-        if (travelTimer <= 3) {
-            const t = travelTimer / 3;
-            offsetX = t * 400; 
-            offsetY = -(t * t * 600);
+        const takeoffTime = 8; // Más lento
+        const landStartTime = TRAVEL_TIME - takeoffTime;
+
+        if (travelTimer <= takeoffTime) {
+            const t = travelTimer / takeoffTime;
+            offsetX = t * 600; // Más lejos
+            offsetY = -(t * t * 800);
             angle = -Math.PI / 12; // Inclinado arriba
-        } else if (travelTimer >= 27) {
-            const t = (30 - travelTimer) / 3;
-            offsetX = -t * 400;
-            offsetY = -(t * t * 600);
+        } else if (travelTimer >= landStartTime) {
+            const t = (TRAVEL_TIME - travelTimer) / takeoffTime;
+            offsetX = -t * 600;
+            offsetY = -(t * t * 800);
             angle = Math.PI / 12; // Inclinado abajo
         } else {
             return; // En el aire central no se dibuja en el mapa
@@ -784,12 +809,11 @@ function drawAirplane(drawX, drawY) {
     }
 
     if (planeAsset && planeAsset.complete && planeAsset.naturalWidth > 0) {
-        // Redimensionar mantieniendo proporciones
-        let iw = 120;
-        let ih = (planeAsset.naturalHeight / planeAsset.naturalWidth) * iw;
+        let iw = planeAsset.naturalWidth * PIXEL_SCALE;
+        let ih = planeAsset.naturalHeight * PIXEL_SCALE;
         
         ctx.save();
-        ctx.translate((drawX - 10) + offsetX + iw/2, (drawY + 10) + offsetY + ih/2);
+        ctx.translate((drawX) + offsetX + iw/2, (drawY) + offsetY + ih/2);
         ctx.rotate(angle);
         ctx.drawImage(planeAsset, -iw/2, -ih/2, iw, ih);
         ctx.restore();

@@ -113,8 +113,17 @@ const faker = {
         up: [],
         left: [],
         right: []
+    },
+    spawnState: 'hidden', // hidden, enter1, enter2, enter3, chasing
+    spawnTimer: 0,
+    enterAssets: {
+        enter1: new Image(),
+        enter2: new Image(),
+        enter3: new Image()
     }
 };
+
+const PIXEL_SCALE = 2; // Factor global para que todos los pixeles tengan el mismo tamaño real en pantalla
 
 // Cámara (seguirá al personaje)
 const camera = {
@@ -170,7 +179,8 @@ let currentIsland = 'home';
 let isTraveling = false;
 let currentActionPrompt = null;
 let travelTimer = 0;
-const TRAVEL_TIME = 30; // Real life 30s
+const TRAVEL_TIME = 45; // Real life 45s (slower animation)
+let houseColor = 'none'; // Color tint for the house
 let planeX = 0, planeY = 0;
 
 const islandFeatures = { house: null, dock: null };
@@ -183,6 +193,13 @@ const treeHitbox = {
     yRel: 45,
     w: 110,
     h: 30
+};
+
+const houseHitbox = {
+    xRel: 64, // Centrado relativo al anchor
+    yRel: 130, // Cerca de la base
+    w: 120,
+    h: 60
 };
 
 // Semilla para aleatoriedad consistente

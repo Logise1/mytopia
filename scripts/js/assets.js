@@ -119,6 +119,14 @@ async function loadAllAnimations() {
     loadEntityAnim(player, 'sprites/characters');
     loadEntityAnim(faker, 'sprites/monsters/faker');
 
+    // Cargar assets de entrada del Faker
+    faker.enterAssets.enter1.src = 'sprites/monsters/faker/enter.png';
+    loadPromises.push(new Promise(res => faker.enterAssets.enter1.onload = res));
+    faker.enterAssets.enter2.src = 'sprites/monsters/faker/enter2 (jump).png';
+    loadPromises.push(new Promise(res => faker.enterAssets.enter2.onload = res));
+    faker.enterAssets.enter3.src = 'sprites/monsters/faker/enter3.png';
+    loadPromises.push(new Promise(res => faker.enterAssets.enter3.onload = res));
+
     await Promise.all(loadPromises);
     getSkinAnimations(skinColor);
     getFakerSkinAnimations(skinColor);
@@ -207,5 +215,19 @@ document.querySelectorAll('.color-btn').forEach(btn => {
 startBtn.addEventListener('click', () => {
     gameState = 'playing';
     skinMenu.classList.add('hidden');
+});
+
+// Selección de color de CASA
+document.querySelectorAll('.house-color-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        document.querySelector('.house-color-btn.selected')?.classList.remove('selected');
+        e.target.classList.add('selected');
+        houseColor = e.target.dataset.color;
+    });
+});
+
+document.getElementById('close-house-menu').addEventListener('click', () => {
+    gameState = 'playing';
+    document.getElementById('house-menu').classList.add('hidden');
 });
 

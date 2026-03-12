@@ -2,13 +2,16 @@ function update(dt) {
     // --- LÓGICA DE VIAJE ---
     if (gameState === 'traveling') {
         const menuEl = document.getElementById('travel-menu');
+        const takeoffTime = 8;
+        const landStartTime = TRAVEL_TIME - takeoffTime;
+
         if (isTraveling && travelTimer > 0) {
             let prevTimer = travelTimer;
             travelTimer += dt;
             let percent = (travelTimer / TRAVEL_TIME) * 100;
             document.getElementById('flight-bar').style.width = percent + '%';
             
-            if (prevTimer <= 3 && travelTimer > 3) {
+            if (prevTimer <= takeoffTime && travelTimer > takeoffTime) {
                 generateIsland(targetTravelIsland);
                 player.x = -9999;
                 player.y = -9999;
@@ -20,25 +23,22 @@ function update(dt) {
         let targetCamX = camera.x;
         let targetCamY = camera.y;
 
-        if (travelTimer <= 3) {
-            // Despegue con easing suave (slow at start and end)
-            // Usamos easeInOutQuad: t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2
-            const rawT = travelTimer / 3;
+        if (travelTimer <= takeoffTime) {
+            const rawT = travelTimer / takeoffTime;
             const t = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
             
-            targetCamX = (planeX * 64) + (t * 400) - canvas.width / 2 + 60;
-            targetCamY = (planeY * 64) - (t * 600) - canvas.height / 2 + 60;
+            targetCamX = (planeX * 64) + (t * 600) - canvas.width / 2 + 60;
+            targetCamY = (planeY * 64) - (t * 800) - canvas.height / 2 + 60;
             
             if (menuEl) menuEl.classList.add('hidden');
-        } else if (travelTimer >= 27) {
-            // Aterrizaje con easing suave
-            const rawT = (30 - travelTimer) / 3;
+        } else if (travelTimer >= landStartTime) {
+            const rawT = (TRAVEL_TIME - travelTimer) / takeoffTime;
             const t = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
             
-            targetCamX = (planeX * 64) - (t * 400) - canvas.width / 2 + 60;
-            targetCamY = (planeY * 64) - (t * 600) - canvas.height / 2 + 60;
+            targetCamX = (planeX * 64) - (t * 600) - canvas.width / 2 + 60;
+            targetCamY = (planeY * 64) - (t * 800) - canvas.height / 2 + 60;
             
-            if (travelTimer - dt < 27) {
+            if (travelTimer - dt < landStartTime) {
                 camera.x = targetCamX;
                 camera.y = targetCamY;
             }
@@ -147,13 +147,11 @@ function update(dt) {
         const tX = tree.x * 64 + treeHitbox.xRel;
         const tY = tree.y * 64 + treeHitbox.yRel;
 
-        // --- HITBOX RECTANGULAR ESTABLE (MTV) ---
         const halfW = treeHitbox.w / 2;
         const halfH = treeHitbox.h / 2;
 
-        // Pies del jugador ( hitbox de 10x8 centrada en pCenterX, pBaseY )
-        const pWh = 5; // Half width
-        const pHh = 4; // Half height
+        const pWh = 5; 
+        const pHh = 4; 
 
         const dx = pCenterX - tX;
         const dy = pBaseY - tY;
@@ -162,7 +160,6 @@ function update(dt) {
         const overlapY = (halfH + pHh) - Math.abs(dy);
 
         if (overlapX > 0 && overlapY > 0) {
-            // Resolver por el eje de menor penetración para evitar saltos locos
             if (overlapX < overlapY) {
                 player.x += (dx > 0 ? overlapX : -overlapX);
                 player.vx = 0;
@@ -172,6 +169,34 @@ function update(dt) {
             }
         }
     });
+
+    // --- COLISIÓN CON CASA ---
+    if (islandFeatures.house) {
+        const hX = islandFeatures.house.x * 64 + houseHitbox.xRel;
+        const hY = islandFeatures.house.y * 64 + houseHitbox.yRel;
+
+        const halfW = houseHitbox.w / 2;
+        const halfH = houseHitbox.h / 2;
+
+        const pWh = 5;
+        const pHh = 4;
+
+        const dx = pCenterX - hX;
+        const dy = pBaseY - hY;
+
+        const overlapX = (halfW + pWh) - Math.abs(dx);
+        const overlapY = (halfH + pHh) - Math.abs(dy);
+
+        if (overlapX > 0 && overlapY > 0) {
+            if (overlapX < overlapY) {
+                player.x += (dx > 0 ? overlapX : -overlapX);
+                player.vx = 0;
+            } else {
+                player.y += (dy > 0 ? overlapY : -overlapY);
+                player.vy = 0;
+            }
+        }
+    }
 
     // Actualizar Cámara de forma SUAVE (Lerp)
     const targetCamX = player.x - canvas.width / 2 + player.width / 2;
@@ -216,11 +241,16 @@ function update(dt) {
             const hx = islandFeatures.house.x * 64;
             const hy = islandFeatures.house.y * 64;
             const distHouse = Math.hypot(player.x - (hx + 64), player.y - (hy + 155));
-            if (distHouse < 80 && !isTraveling && gameState === 'playing') {
-                currentActionPrompt = "[ENTER] Entrar";
+            if (distHouse < 120 && !isTraveling && gameState === 'playing') {
+                currentActionPrompt = "[ENTER] Entrar | [R] Casa";
                 if (keys['Enter']) {
                     enterHouse(currentIsland);
                     keys['Enter'] = false;
+                }
+                if (keys['KeyR']) {
+                    gameState = 'customizing';
+                    document.getElementById('house-menu').classList.remove('hidden');
+                    keys['KeyR'] = false;
                 }
             }
         }
@@ -242,49 +272,57 @@ function update(dt) {
     if (!isInside && isNightForFaker && gameState === 'playing') {
         if (!faker.active) {
             faker.active = true;
-            // Spawn lejos del jugador
+            faker.spawnState = 'enter1';
+            faker.spawnTimer = 0.5;
             const angle = Math.random() * Math.PI * 2;
             const distance = 1000 + Math.random() * 500;
             faker.x = player.x + Math.cos(angle) * distance;
             faker.y = player.y + Math.sin(angle) * distance;
         }
 
-        // Mover hacia el jugador
-        const dx = player.x - faker.x;
-        const dy = player.y - faker.y;
-        const dist = Math.hypot(dx, dy);
+        if (faker.spawnState !== 'chasing') {
+            faker.spawnTimer -= dt;
+            if (faker.spawnTimer <= 0) {
+                if (faker.spawnState === 'enter1') {
+                    faker.spawnState = 'enter2';
+                    faker.spawnTimer = 0.5;
+                } else if (faker.spawnState === 'enter2') {
+                    faker.spawnState = 'enter3';
+                    faker.spawnTimer = 0.2;
+                } else if (faker.spawnState === 'enter3') {
+                    faker.spawnState = 'chasing';
+                }
+            }
+        }
 
-        if (dist > 0) {
-            let fvx = (dx / dist) * faker.speed;
-            let fvy = (dy / dist) * faker.speed;
-            
-            faker.vx += fvx * dt;
-            faker.vy += fvy * dt;
+        if (faker.spawnState === 'chasing') {
+            const dx = player.x - faker.x;
+            const dy = player.y - faker.y;
+            const dist = Math.hypot(dx, dy);
 
-            // Fricción y max speed (similar a jugador)
-            const frictionF = Math.pow(0.9, dt * 60);
-            faker.vx *= frictionF;
-            faker.vy *= frictionF;
-
-            const curSpeed = Math.hypot(faker.vx, faker.vy);
-            if (curSpeed > faker.maxSpeed) {
-                faker.vx *= (faker.maxSpeed / curSpeed);
-                faker.vy *= (faker.maxSpeed / curSpeed);
+            if (dist > 0) {
+                let fvx = (dx / dist) * faker.speed;
+                let fvy = (dy / dist) * faker.speed;
+                faker.vx += fvx * dt;
+                faker.vy += fvy * dt;
+                const frictionF = Math.pow(0.9, dt * 60);
+                faker.vx *= frictionF;
+                faker.vy *= frictionF;
+                const curSpeed = Math.hypot(faker.vx, faker.vy);
+                if (curSpeed > faker.maxSpeed) {
+                    faker.vx *= (faker.maxSpeed / curSpeed);
+                    faker.vy *= (faker.maxSpeed / curSpeed);
+                }
+                faker.x += faker.vx * dt;
+                faker.y += faker.vy * dt;
+                faker.isMoving = curSpeed > 10;
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    faker.direction = dx > 0 ? 'right' : 'left';
+                } else {
+                    faker.direction = dy > 0 ? 'forward' : 'up';
+                }
             }
 
-            faker.x += faker.vx * dt;
-            faker.y += faker.vy * dt;
-            
-            faker.isMoving = curSpeed > 10;
-            
-            // Dirección
-            if (Math.abs(dx) > Math.abs(dy)) {
-                faker.direction = dx > 0 ? 'right' : 'left';
-            } else {
-                faker.direction = dy > 0 ? 'forward' : 'up';
-            }
-
-            // Animación
             if (faker.isMoving) {
                 faker.frameTimer += dt;
                 if (faker.frameTimer > faker.frameDuration) {
@@ -295,20 +333,22 @@ function update(dt) {
                 faker.frame = 0;
             }
 
-            // Dañar al jugador
-            if (dist < 25) { // Rango menor de daño (antes 40)
-                stats.health -= 15 * dt; // Pierdes 15 puntos de vida por segundo (antes 60)
+            if (dist < 25) {
+                stats.health -= 15 * dt;
                 if (stats.health <= 0) {
                     stats.health = 0;
                     gameState = 'dead';
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 4000);
+                    setTimeout(() => { window.location.reload(); }, 4000);
                 }
             }
+        } else {
+            faker.vx = 0;
+            faker.vy = 0;
+            faker.isMoving = false;
         }
     } else {
         faker.active = false;
+        faker.spawnState = 'hidden';
     }
 }
 
