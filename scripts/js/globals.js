@@ -184,6 +184,10 @@ const insidePlaneAsset = new Image();
 const houseAsset = new Image();
 const dockAsset = new Image();
 const signAsset = new Image();
+const furnitureAssets = {
+    sofa: new Image(),
+    isLoaded: false
+};
 const fogAssets = [new Image(), new Image(), new Image()];
 let treeShadowCanvas = null;
 let mytopianFriends = []; // Array of saved friend names

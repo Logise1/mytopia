@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Mytopian Gazette</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tiny5&display=swap" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Tiny5', monospace;
+            background: #7a6840;
+            display: flex;
+            justify-content: center;
+            padding: 32px 12px 64px;
+        }
+
+        .paper {
+            background: #f2e8c9;
+            width: 100%;
+            max-width: 900px;
+            box-shadow: 6px 6px 0 #5a4820, 12px 12px 30px rgba(0, 0, 0, 0.55);
+        }
+
+        /* ─── MASTHEAD ─── */
+        .masthead {
+            border-bottom: 5px double #2e1e08;
+            padding: 22px 32px 16px;
+            text-align: center;
+            background: linear-gradient(180deg, #dfd0a0 0%, #f2e8c9 100%);
+        }
+
+        .mast-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #9a8050;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .mast-title {
+            font-size: 56px;
+            color: #1c1008;
+            letter-spacing: 4px;
+            text-shadow: 3px 3px 0 #dfd0a0;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .mast-sub {
+            font-size: 11px;
+            letter-spacing: 8px;
+            color: #9a8050;
+        }
+
+        .edition-bar {
+            background: #1c1008;
+            color: #f2e8c9;
+            text-align: center;
+            padding: 7px;
+            font-size: 11px;
+            letter-spacing: 5px;
+        }
+
+        /* ─── LAYOUT ─── */
+        .body {
+            padding: 24px 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-top: 2px solid #2e1e08;
+        }
+
+        .divider span {
+            font-size: 11px;
+            letter-spacing: 4px;
+            color: #8b1a1a;
+            white-space: nowrap;
+        }
+
+        /* ─── TEXT ELEMENTS ─── */
+        .kicker {
+            font-size: 11px;
+            letter-spacing: 3px;
+            color: #8b1a1a;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        h2 {
+            font-size: 40px;
+            color: #1c1008;
+            line-height: 1.05;
+            margin-bottom: 8px;
+        }
+
+        h3 {
+            font-size: 20px;
+            color: #1c1008;
+            line-height: 1.1;
+            margin-bottom: 8px;
+        }
+
+        .byline {
+            font-size: 10px;
+            color: #9a8050;
+            letter-spacing: 2px;
+            border-top: 1px solid #dfd0a0;
+            border-bottom: 1px solid #dfd0a0;
+            padding: 4px 0;
+            margin-bottom: 12px;
+        }
+
+        p {
+            font-size: 14px;
+            line-height: 2;
+            color: #1c1008;
+            text-align: justify;
+        }
+
+        p+p {
+            margin-top: 10px;
+        }
+
+        .cols {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .col-div {
+            border-left: 1px solid #c8b888;
+            padding-left: 24px;
+        }
+
+        .pull-quote {
+            border-top: 3px solid #2e1e08;
+            border-bottom: 3px solid #2e1e08;
+            padding: 12px 16px;
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .pull-quote p {
+            font-size: 18px;
+        }
+
+        .pull-quote cite {
+            font-size: 10px;
+            color: #9a8050;
+            letter-spacing: 2px;
+            display: block;
+            margin-top: 6px;
+        }
+
+        .headline-block {
+            border-bottom: 4px double #2e1e08;
+            padding-bottom: 20px;
+        }
+
+        /* ─── ART FRAMES ─── */
+        .art-frame {
+            border: 3px solid #2e1e08;
+            background: #fff;
+            padding: 6px;
+            box-shadow: 4px 4px 0 #dfd0a0;
+            position: relative;
+        }
+
+        .art-frame canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .art-placeholder {
+            background: #f0e8d0;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #9a8050;
+            letter-spacing: 2px;
+        }
+
+        .art-label {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: #1c1008;
+            color: #f2e8c9;
+            font-size: 9px;
+            padding: 2px 7px;
+            letter-spacing: 2px;
+        }
+
+        .art-caption {
+            font-size: 11px;
+            color: #9a8050;
+            text-align: center;
+            margin-top: 7px;
+            font-style: italic;
+            letter-spacing: 1px;
+            line-height: 1.6;
+        }
+
+        .art-caption strong {
+            color: #1c1008;
+            font-style: normal;
+        }
+
+        /* ─── INFO BOX ─── */
+        .box {
+            border: 2px solid #2e1e08;
+            background: #ede0b0;
+            padding: 12px 16px;
+        }
+
+        .box-title {
+            font-size: 11px;
+            letter-spacing: 3px;
+            color: #8b1a1a;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #2e1e08;
+            padding-bottom: 5px;
+        }
+
+        .box ul {
+            list-style: none;
+        }
+
+        .box ul li {
+            font-size: 12px;
+            line-height: 2;
+            color: #1c1008;
+            padding-left: 14px;
+            position: relative;
+        }
+
+        .box ul li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: #8b1a1a;
+        }
+
+        /* ─── FOOTER ─── */
+        .footer {
+            border-top: 4px double #2e1e08;
+            background: #dfd0a0;
+            padding: 14px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-logo {
+            font-size: 22px;
+            color: #1c1008;
+            letter-spacing: 2px;
+        }
+
+        .footer-text {
+            font-size: 10px;
+            color: #9a8050;
+            text-align: right;
+            line-height: 2;
+        }
+
+        .footer-text a {
+            color: #8b1a1a;
+        }
+
+        @media (max-width: 580px) {
+            .cols {
+                grid-template-columns: 1fr;
+            }
+
+            .mast-title {
+                font-size: 34px;
+            }
+
+            h2 {
+                font-size: 26px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="paper">
+
+        <!-- MASTHEAD -->
+        <div class="masthead">
+            <div class="mast-meta">
+                <span>VOL. I · Nº 1</span>
+                <span>EDICIÓN CONCEPT ART</span>
+                <span>🪙 500 MONEDAS</span>
+            </div>
+            <div class="mast-title">THE MYTOPIAN GAZETTE</div>
+            <div class="mast-sub">La voz oficial del universo MyTopia</div>
+        </div>
+        <div class="edition-bar">✦ &nbsp; EXCLUSIVA MUNDIAL: ARTE CONCEPTUAL FILTRADO &nbsp; ✦</div>
+
+        <div class="body">
+
+            <!-- ── PORTADA ── -->
+            <div class="headline-block">
+                <span class="kicker">✦ primera plana ✦</span>
+                <h2>MYTOPIA REVELA SUS SECRETOS</h2>
+                <div class="byline">Por nuestra corresponsal en la Isla Central</div>
+                <div class="cols">
+                    <div>
+                        <p>MyTopia es un juego de vida en isla para varios jugadores. Construyes tu hogar desde cero, lo
+                            decoras con monedas y viajas en avión a visitar las islas de tus amigos. Al entrar por
+                            primera vez apareces en tu casa — el corazón de todo lo que viene después.</p>
+                        <p>El sistema acepta hasta cinco cuentas distintas. Cada perfil guarda su propia partida en su
+                            propio servidor.</p>
+                        <div class="pull-quote">
+                            <p>"Aparecerás dentro de un edificio. Esta será tu casa."</p>
+                            <cite>— Documento de diseño, pág. 2</cite>
+                        </div>
+                    </div>
+                    <div class="col-div">
+                        <h3>⚠ EL SKINWALKER ACECHA</h3>
+                        <p>El mayor terror del archipiélago no viene de fuera. El Faker imita la forma de un jugador
+                            normal en tres fases: cubo pequeño, cubo distorsionado y, finalmente, criatura de cuello
+                            interminable con ojos vacíos y extremidades aracnoides.</p>
+                        <p>Los bocetos muestran la transición completa. Si tu vecino actúa de forma extraña — no te
+                            acerques.</p>
+                        <div class="box" style="margin-top:14px;">
+                            <div class="box-title">Datos del juego</div>
+                            <ul>
+                                <li>Género: Simulación de isla</li>
+                                <li>Multijugador: islas visitables</li>
+                                <li>Moneda: Coins 🪙</li>
+                                <li>Perfiles: hasta 5 por cuenta</li>
+                                <li>Motor: JavaScript + Firebase</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── LÁMINA I ── -->
+            <div class="divider"><span>✦ lámina I ✦</span></div>
+            <div class="art-frame">
+                <span class="art-label">Lámina I</span>
+                <div class="art-placeholder" id="ph1">Cargando bocetos...</div>
+                <canvas id="pg1" style="display:none;"></canvas>
+            </div>
+            <div class="art-caption">
+                <strong>Primeros bocetos.</strong> Storyboards de presentación, el Character Editor con selector de piel
+                y nombre, el equipo "My Team" y la transición completa del Faker: de cubo inocente a criatura sin
+                rostro.
+            </div>
+
+            <!-- ── LÁMINA II ── -->
+            <div class="divider"><span>✦ lámina II ✦</span></div>
+            <div class="art-frame">
+                <span class="art-label">Lámina II</span>
+                <div class="art-placeholder" id="ph2">Cargando planos...</div>
+                <canvas id="pg2" style="display:none;"></canvas>
+            </div>
+            <div class="art-caption">
+                <strong>Documento de diseño.</strong> Pantalla Account SELECT con hasta cinco perfiles y primer boceto
+                del hogar del jugador con distribución interior.
+            </div>
+
+            <!-- ── PERSONAJES ── -->
+            <div class="divider"><span>✦ personajes y mundo ✦</span></div>
+            <div class="cols">
+                <div>
+                    <span class="kicker">roster confirmado</span>
+                    <h3>17 VECINOS ILUSTRES</h3>
+                    <div class="byline">Sección personajes · Lámina VI</div>
+                    <p>Entre los vecinos confirmados: Zelda, Mario, Luigi, Sans, Sonic, Steve, Kirby, Miku, Madeline,
+                        Isaac, Ralsei, Freddy, BF & GF y el Cubo de Geometry Dash. Cada uno adaptado al estilo cuadrado
+                        propio de MyTopia.</p>
+                    <p>También figura el enigmático <em>Einstein Lisleño (histoso)</em> — posible NPC de lore — y el Rey
+                        del Clan como posible boss social.</p>
+                </div>
+                <div class="col-div">
+                    <span class="kicker">economía insular</span>
+                    <h3>FOOD · ROPA · ARMAS</h3>
+                    <div class="byline">Isla Central · Lámina IV</div>
+                    <p>La Isla Central alberga tres tiendas en edificios de varios pisos. Decora tu hogar:</p>
+                    <div class="box" style="margin-top:10px;">
+                        <div class="box-title">Catálogo de decoración</div>
+                        <ul>
+                            <li>Sofá — 100 🪙</li>
+                            <li>Mesa — 50 🪙</li>
+                            <li>Cama — 150 🪙</li>
+                            <li>Alfombra — 30 🪙</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── LÁMINA III ── -->
+            <div class="divider"><span>✦ lámina III ✦</span></div>
+            <div class="art-frame">
+                <span class="art-label">Lámina III</span>
+                <div class="art-placeholder" id="ph3">Cargando galería...</div>
+                <canvas id="pg3" style="display:none;"></canvas>
+            </div>
+            <div class="art-caption">
+                <strong>Galería de personajes y sistemas.</strong> El roster completo en fila, iconos de armas (pala,
+                pico, espada, pistola), sistema de vida y energía, escenas narrativas y el cartel de MYTOPIA en la isla.
+            </div>
+
+            <!-- ── LÁMINA IV ── -->
+            <div class="divider"><span>✦ lámina IV ✦</span></div>
+            <div class="art-frame">
+                <span class="art-label">Lámina IV</span>
+                <div class="art-placeholder" id="ph4">Cargando mapa...</div>
+                <canvas id="pg4" style="display:none;"></canvas>
+            </div>
+            <div class="art-caption">
+                <strong>Mapa de la Isla Central y árbol de menús.</strong> Los edificios de las tres tiendas, el
+                diagrama completo de navegación del juego, el HUD con corazones y barra de energía, y los NPCs de las
+                tiendas.
+            </div>
+
+            <!-- ── LÁMINA V ── -->
+            <div class="divider"><span>✦ lámina V ✦</span></div>
+            <div class="art-frame">
+                <span class="art-label">Lámina V</span>
+                <div class="art-placeholder" id="ph5">Cargando criaturas...</div>
+                <canvas id="pg5" style="display:none;"></canvas>
+            </div>
+            <div class="art-caption">
+                <strong>Criaturas y arquitectura.</strong> El Faker/Skinwalker en su versión más detallada. Lista de
+                tiles: Césped · Arena · Agua · Madera. Menú principal: Play · Options · Character · Credits · Gallery.
+            </div>
+
+            <!-- ── LÁMINA VI ── -->
+            <div class="divider"><span>✦ lámina VI ✦</span></div>
+            <div class="art-frame">
+                <span class="art-label">Lámina VI</span>
+                <div class="art-placeholder" id="ph6">Cargando universo...</div>
+                <canvas id="pg6" style="display:none;"></canvas>
+            </div>
+            <div class="art-caption">
+                <strong>El universo completo en rosa.</strong> Los dos logos oficiales de MyTopia (versión amigable y
+                versión explosiva), diseños de casas insulares, el roster completo y el HUD con indicadores de monedas.
+            </div>
+
+        </div><!-- /body -->
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <div class="footer-logo">MYTOPIAN GAZETTE</div>
+            <div class="footer-text">
+                Concept Art: <a
+                    href="https://logise1.github.io/mytopia/conceptart.pdf">logise1.github.io/mytopia/conceptart.pdf</a><br />
+                Juega: <a href="https://logise1.github.io/mytopia/">logise1.github.io/mytopia</a>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const PDF = 'https://logise1.github.io/mytopia/conceptart.pdf';
+
+        async function renderAll() {
+            let pdf;
+            try {
+                pdf = await pdfjsLib.getDocument(PDF).promise;
+            } catch (e) {
+                document.querySelectorAll('.art-placeholder').forEach(el => {
+                    el.textContent = '[ Ver PDF en logise1.github.io/mytopia/conceptart.pdf ]';
+                });
+                return;
+            }
+
+            for (let n = 1; n <= pdf.numPages; n++) {
+                const ph = document.getElementById('ph' + n);
+                const canvas = document.getElementById('pg' + n);
+                if (!canvas) continue;
+                try {
+                    const page = await pdf.getPage(n);
+                    // Scale so page fills container width
+                    const containerW = canvas.parentElement.clientWidth - 12;
+                    const viewport0 = page.getViewport({ scale: 1 });
+                    const scale = containerW / viewport0.width;
+                    const viewport = page.getViewport({ scale });
+
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+                    ph.style.display = 'none';
+                    canvas.style.display = 'block';
+                } catch (e) {
+                    ph.textContent = '[ Error cargando lámina ' + n + ' ]';
+                }
+            }
+        }
+
+        // Wait for fonts + layout before measuring widths
+        window.addEventListener('load', renderAll);
+    </script>
+</body>
+
+</html>

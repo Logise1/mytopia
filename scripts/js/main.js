@@ -16,7 +16,8 @@ window.onload = async () => {
     await Promise.all([
         loadAllAnimations(),
         loadHUDAssets(),
-        loadTileAssets()
+        loadTileAssets(),
+        loadFurnitureAssets()
     ]);
 
     // Posicionar jugador en el centro de la isla
@@ -262,6 +263,22 @@ document.getElementById('close-furniture-btn').onclick = () => {
     selectedFurniture = null;
 };
 
+// Selección de color de MUEBLES
+document.querySelectorAll('.f-color-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        if (selectedFurniture) {
+            document.querySelector('.f-color-btn.selected')?.classList.remove('selected');
+            e.target.classList.add('selected');
+            selectedFurniture.color = e.target.dataset.color;
+            saveFurniture();
+        }
+    });
+});
+
+document.getElementById('close-f-color-menu').addEventListener('click', () => {
+    document.getElementById('furniture-color-menu').classList.add('hidden');
+});
+
 // Arrastrar muebles
 canvas.addEventListener('mousedown', (e) => {
     if (!currentIsland.includes('_inside') || document.getElementById('furniture-editor').classList.contains('hidden')) return;
@@ -270,9 +287,21 @@ canvas.addEventListener('mousedown', (e) => {
     const worldY = mouseY + camera.y;
 
     homeFurniture.forEach(f => {
-        const dist = Math.hypot(worldX - f.x, worldY - f.y);
-        if (dist < 40) {
+        // Detección de colisión según tipo
+        let hit = false;
+        if (f.type === 'sofa') {
+            // El sofa es 192x64 (3x1 tiles)
+            hit = worldX >= f.x - 96 && worldX <= f.x + 96 && worldY >= f.y - 32 && worldY <= f.y + 32;
+        } else {
+            const dist = Math.hypot(worldX - f.x, worldY - f.y);
+            hit = dist < 40;
+        }
+
+        if (hit) {
             selectedFurniture = f;
+            if (f.type === 'sofa') {
+                document.getElementById('furniture-color-menu').classList.remove('hidden');
+            }
         }
     });
 });

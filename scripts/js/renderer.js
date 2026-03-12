@@ -1032,30 +1032,80 @@ function drawInteractionPrompt() {
     }
 }
 
+const furnitureCaches = {};
+
+function getTintedFurniture(type, color) {
+    const cacheKey = `${type}_${color}`;
+    if (furnitureCaches[cacheKey]) return furnitureCaches[cacheKey];
+    
+    const baseImg = furnitureAssets[type];
+    if (!baseImg || !baseImg.complete || baseImg.naturalWidth === 0) return null;
+    
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCanvas.width = baseImg.naturalWidth;
+    tempCanvas.height = baseImg.naturalHeight;
+    tempCtx.drawImage(baseImg, 0, 0);
+    
+    const target = hexToRgb(color || '#ffffff');
+    if (!target) return baseImg;
+    
+    const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+        // Máscara verde: si el pixel es predominantemente verde
+        if (a > 0 && g > r && g > b) {
+            const factor = g / 255;
+            data[i] = Math.floor(target.r * factor);
+            data[i + 1] = Math.floor(target.g * factor);
+            data[i + 2] = Math.floor(target.b * factor);
+        }
+    }
+    tempCtx.putImageData(imageData, 0, 0);
+    furnitureCaches[cacheKey] = tempCanvas;
+    return tempCanvas;
+}
+
 function drawFurnitureSingle(f) {
     const dx = f.x - camera.x;
     const dy = f.y - camera.y;
 
     ctx.save();
-    ctx.translate(dx, dy);
     
     // Renderizado basado en placeholders de CSS (pero en Canvas)
     if (f.type === 'sofa') {
-        ctx.fillStyle = '#a52a2a';
-        ctx.fillRect(-32, -32, 64, 54);
-        ctx.fillStyle = '#5c1818';
-        ctx.fillRect(-32, 22, 64, 10);
+        const img = getTintedFurniture('sofa', f.color);
+        if (img) {
+            // El sofa es 3x1 tiles (192 x 64)
+            const sw = 192;
+            const sh = 64;
+            // Dibujar centrado respecto a f.x, f.y (que es el centro de la tile central o el punto de origen)
+            // Según logic anterior: f.x = Math.floor(player.x / 64) * 64 + 32;
+            ctx.drawImage(img, dx - sw/2, dy - sh/2, sw, sh);
+        } else {
+            // Fallback
+            ctx.fillStyle = f.color || '#a52a2a';
+            ctx.fillRect(dx - 96, dy - 32, 192, 54);
+            ctx.fillStyle = '#000';
+            ctx.globalAlpha = 0.2;
+            ctx.fillRect(dx - 96, dy + 22, 192, 10);
+            ctx.globalAlpha = 1.0;
+        }
     } else if (f.type === 'table') {
+        ctx.translate(dx, dy);
         ctx.fillStyle = '#8b4513';
         ctx.fillRect(-32, -10, 64, 15); // Sobre
         ctx.fillRect(-28, 5, 8, 27); // Pata izq
         ctx.fillRect(20, 5, 8, 27); // Pata der
     } else if (f.type === 'bed') {
+        ctx.translate(dx, dy);
         ctx.fillStyle = '#4682b4';
         ctx.fillRect(-32, -32, 64, 64);
         ctx.fillStyle = 'white';
         ctx.fillRect(8, -28, 20, 20); // Almohada
     } else if (f.type === 'rug') {
+        ctx.translate(dx, dy);
         ctx.globalAlpha = 0.8;
         ctx.fillStyle = '#ff69b4';
         ctx.beginPath();
@@ -1065,9 +1115,13 @@ function drawFurnitureSingle(f) {
 
     // Si es el mueble seleccionado para mover
     if (selectedFurniture === f) {
-        ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2;
-        ctx.strokeRect(-35, -35, 70, 70);
+        ctx.strokeStyle = '#fff';
+        if (f.type === 'sofa') {
+            ctx.strokeRect(dx - 96, dy - 32, 192, 64);
+        } else {
+            ctx.strokeRect(dx - 35, dy - 35, 70, 70);
+        }
     }
 
     ctx.restore();

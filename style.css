@@ -39,7 +39,7 @@ canvas {
     height: 100%;
 }
 
-#skin-menu, #house-menu {
+#skin-menu, #house-menu, #furniture-color-menu {
     position: absolute;
     top: 50%;
     right: 50px;
@@ -60,14 +60,14 @@ canvas {
     filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
 }
 
-#skin-menu h3, #house-menu h3 {
+#skin-menu h3, #house-menu h3, #furniture-color-menu h3 {
     margin-bottom: 10px;
     font-family: "Jacquard 12", serif;
     font-size: 32px;
     font-weight: normal;
 }
 
-#skin-menu.hidden, #house-menu.hidden {
+#skin-menu.hidden, #house-menu.hidden, #furniture-color-menu.hidden {
     opacity: 0;
     pointer-events: none;
     transform: translateY(-50%) translateX(20px);
@@ -80,7 +80,7 @@ canvas {
     margin: 10px 0;
 }
 
-.color-btn, .house-color-btn {
+.color-btn, .house-color-btn, .f-color-btn {
     width: 32px;
     height: 32px;
     border: 3px solid #5d3350;
@@ -89,16 +89,16 @@ canvas {
     transition: transform 0.2s;
 }
 
-.color-btn:hover, .house-color-btn:hover {
+.color-btn:hover, .house-color-btn:hover, .f-color-btn:hover {
     transform: scale(1.1);
 }
 
-.color-btn.selected, .house-color-btn.selected {
+.color-btn.selected, .house-color-btn.selected, .f-color-btn.selected {
     border-color: #fff;
     box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
 }
 
-#start-game, #close-house-menu {
+#start-game, #close-house-menu, #close-f-color-menu {
     background-color: #5d3350;
     color: #ffb58b;
     border: none;
@@ -637,7 +637,13 @@ canvas {
 }
 
 /* Placeholders genéricos para muebles */
-.f-preview.sofa { background-color: #a52a2a; border-radius: 10px; border-bottom: 10px solid #5c1818; }
+.f-preview.sofa { 
+    background-image: url('sprites/textures/home/sofa.png');
+    background-color: transparent;
+    width: 90px; /* Mas ancho para la preview */
+    border-radius: 0;
+    border-bottom: none;
+}
 .f-preview.table { background-color: #8b4513; clip-path: polygon(0 20%, 100% 20%, 100% 40%, 80% 40%, 80% 100%, 70% 100%, 70% 40%, 30% 40%, 30% 100%, 20% 100%, 20% 40%, 0 40%); }
 .f-preview.bed { background-color: #4682b4; border-radius: 5px; position: relative; }
 .f-preview.bed::after { content: ""; position: absolute; top: 0; right: 0; width: 25%; height: 50%; background: white; border-radius: 2px; }

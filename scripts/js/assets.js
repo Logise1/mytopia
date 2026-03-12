@@ -56,6 +56,16 @@ async function loadTileAssets() {
     tileAssets.isLoaded = true;
 }
 
+async function loadFurnitureAssets() {
+    const promises = [];
+    
+    furnitureAssets.sofa.src = 'sprites/textures/home/sofa.png';
+    promises.push(new Promise(res => furnitureAssets.sofa.onload = res));
+    
+    await Promise.all(promises);
+    furnitureAssets.isLoaded = true;
+}
+
 async function loadHUDAssets() {
     const promises = [];
     const files = {
