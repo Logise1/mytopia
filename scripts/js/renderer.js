@@ -487,12 +487,21 @@ function drawPlayer() {
         ctx.strokeRect(screenX + player.width / 2 - 5, screenY + player.height - 8, 10, 8); // Punto de colisión (pies)
     }
 
-    // Dibujar nombre local sobre la cabeza
+    // Dibujar nombre local sobre la cabeza con sombra para legibilidad
     if (multiplayer.username && gameState !== 'dead') {
-        ctx.fillStyle = "white";
+        ctx.save();
         ctx.font = '20px "Tiny5", sans-serif';
         ctx.textAlign = "center";
+        
+        // Sombra de borde (Stroke)
+        ctx.strokeStyle = "rgba(0,0,0,0.8)";
+        ctx.lineWidth = 3;
+        ctx.strokeText(multiplayer.username, screenX + player.width / 2, screenY - 10);
+        
+        // Texto blanco central
+        ctx.fillStyle = "white";
         ctx.fillText(multiplayer.username, screenX + player.width / 2, screenY - 10);
+        ctx.restore();
     }
 }
 
@@ -743,11 +752,20 @@ function drawSingleOtherPlayer(uid) {
 
     if (screenX < -100 || screenX > canvas.width + 100 || screenY < -100 || screenY > canvas.height + 100) return;
 
-    // Dibujar nombre
-    ctx.fillStyle = "white";
+    // Dibujar nombre con sombra
+    ctx.save();
     ctx.font = '20px "Tiny5", sans-serif';
     ctx.textAlign = "center";
+    
+    // Sombra de borde (Stroke)
+    ctx.strokeStyle = "rgba(0,0,0,0.8)";
+    ctx.lineWidth = 3;
+    ctx.strokeText(p.username || "", screenX + player.width / 2, screenY - 10);
+    
+    // Texto blanco
+    ctx.fillStyle = "white";
     ctx.fillText(p.username || "", screenX + player.width / 2, screenY - 10);
+    ctx.restore();
 
     const animSet = getSkinAnimations(p.skin || '#ffdbac');
     const anim = animSet[p.direction];

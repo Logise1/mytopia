@@ -20,7 +20,7 @@ async function initFirebase() {
             multiplayer.username = name || 'Jugador';
 
             document.getElementById('auth-menu').classList.add('hidden');
-            document.getElementById('logout-btn').classList.remove('hidden');
+            document.getElementById('settings-btn').classList.remove('hidden');
 
             // Intentar recuperar el color guardado previamente
             let skinLoaded = false;
@@ -54,16 +54,51 @@ async function initFirebase() {
             multiplayer.userId = null;
             multiplayer.username = "";
             document.getElementById('auth-menu').classList.remove('hidden');
-            document.getElementById('logout-btn').classList.add('hidden');
+            document.getElementById('settings-btn').classList.add('hidden');
+            document.getElementById('settings-menu').classList.add('hidden');
             skinMenu.classList.add('hidden');
             gameState = 'intro';
         }
     });
 
     // Configuración del botón de Cerrar sesión
-    document.getElementById('logout-btn').addEventListener('click', () => {
+    document.getElementById('logout-inner-btn').addEventListener('click', () => {
         fb.signOut(auth).then(() => {
-            window.location.reload(); // Recarga la página para empezar de cero
+            window.location.reload(); 
+        });
+    });
+
+    // Toggle de Ajustes
+    document.getElementById('settings-btn').addEventListener('click', () => {
+        document.getElementById('settings-menu').classList.toggle('hidden');
+    });
+
+    document.getElementById('close-settings-btn').addEventListener('click', () => {
+        document.getElementById('settings-menu').classList.add('hidden');
+    });
+
+    // Lógica de cambio de SKIN en Ajustes
+    document.querySelectorAll('.skin-color-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const color = e.target.dataset.color;
+            skinColor = color;
+            
+            // Visual update
+            getSkinAnimations(skinColor);
+            getFakerSkinAnimations(skinColor);
+            
+            // Mark selected
+            document.querySelector('.skin-color-btn.selected')?.classList.remove('selected');
+            e.target.classList.add('selected');
+
+            // Save to Firebase
+            if (multiplayer.userId) {
+                try {
+                    await fb.setDoc(fb.doc(fs, "users", multiplayer.userId), {
+                        skin: skinColor
+                    }, { merge: true });
+                } catch(err) { console.error("Error saving skin:", err); }
+            }
         });
     });
 }

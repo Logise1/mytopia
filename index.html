@@ -154,7 +154,28 @@
         </div>
     </div>
 
-    <button id="logout-btn" class="hidden">Cerrar sesión</button>
+    <!-- Menú de Ajustes -->
+    <div id="settings-menu" class="hidden">
+        <h3>Ajustes</h3>
+        <div class="settings-section">
+            <p>Cambiar color de piel:</p>
+            <div class="color-options">
+                <button class="skin-color-btn" style="background-color: #ffffff;" data-color="#ffffff"></button>
+                <button class="skin-color-btn" style="background-color: #ffdbac;" data-color="#ffdbac"></button>
+                <button class="skin-color-btn" style="background-color: #f1c27d;" data-color="#f1c27d"></button>
+                <button class="skin-color-btn" style="background-color: #e0ac69;" data-color="#e0ac69"></button>
+                <button class="skin-color-btn" style="background-color: #8d5524;" data-color="#8d5524"></button>
+                <button class="skin-color-btn" style="background-color: #c68642;" data-color="#c68642"></button>
+                <button class="skin-color-btn" style="background-color: #2b1d0e;" data-color="#2b1d0e"></button>
+            </div>
+        </div>
+        <div class="settings-footer">
+            <button id="logout-inner-btn">Cerrar Sesión</button>
+            <button id="close-settings-btn">Volver</button>
+        </div>
+    </div>
+
+    <button id="settings-btn" class="hidden">⚙️ Ajustes</button>
 
     <!-- UI de Viaje -->
     <div id="travel-menu" class="hidden">

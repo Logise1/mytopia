@@ -39,7 +39,7 @@ canvas {
     height: 100%;
 }
 
-#skin-menu, #house-menu, #furniture-color-menu {
+#skin-menu, #house-menu, #furniture-color-menu, #settings-menu {
     position: absolute;
     top: 50%;
     right: 50px;
@@ -60,14 +60,14 @@ canvas {
     filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
 }
 
-#skin-menu h3, #house-menu h3, #furniture-color-menu h3 {
+#skin-menu h3, #house-menu h3, #furniture-color-menu h3, #settings-menu h3 {
     margin-bottom: 10px;
     font-family: "Jacquard 12", serif;
     font-size: 32px;
     font-weight: normal;
 }
 
-#skin-menu.hidden, #house-menu.hidden, #furniture-color-menu.hidden {
+#skin-menu.hidden, #house-menu.hidden, #furniture-color-menu.hidden, #settings-menu.hidden {
     opacity: 0;
     pointer-events: none;
     transform: translateY(-50%) translateX(20px);
@@ -80,7 +80,7 @@ canvas {
     margin: 10px 0;
 }
 
-.color-btn, .house-color-btn, .f-color-btn {
+.color-btn, .house-color-btn, .f-color-btn, .skin-color-btn {
     width: 32px;
     height: 32px;
     border: 3px solid #5d3350;
@@ -93,12 +93,12 @@ canvas {
     transform: scale(1.1);
 }
 
-.color-btn.selected, .house-color-btn.selected, .f-color-btn.selected {
+.color-btn.selected, .house-color-btn.selected, .f-color-btn.selected, .skin-color-btn.selected {
     border-color: #fff;
     box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
 }
 
-#start-game, #close-house-menu, #close-f-color-menu {
+#start-game, #close-house-menu, #close-f-color-menu, #close-settings-btn, #logout-inner-btn {
     background-color: #5d3350;
     color: #ffb58b;
     border: none;
@@ -189,7 +189,7 @@ canvas {
     display: none !important;
 }
 
-#logout-btn {
+#settings-btn {
     position: absolute;
     top: 20px;
     right: 20px;
@@ -205,8 +205,25 @@ canvas {
     z-index: 300;
 }
 
-#logout-btn:hover {
+#settings-btn:hover {
     background-color: #7a4369;
+}
+
+.settings-section p {
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.settings-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+#logout-inner-btn {
+    background-color: #ad4054 !important;
+    color: white !important;
 }
 
 #travel-menu {
@@ -772,6 +789,7 @@ canvas {
     font-size: 24px;
     color: #fff;
     font-family: "Jacquard 12", serif;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
 .mission-box {
