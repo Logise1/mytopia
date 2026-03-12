@@ -11,7 +11,8 @@ body {
     align-items: center;
     height: 100vh;
     overflow: hidden;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: "Tiny5", sans-serif;
+    letter-spacing: 1px;
 }
 
 #game-container {
@@ -61,7 +62,9 @@ canvas {
 
 #skin-menu h3 {
     margin-bottom: 10px;
-    font-size: 20px;
+    font-family: "Jacquard 12", serif;
+    font-size: 32px;
+    font-weight: normal;
 }
 
 #skin-menu.hidden {
@@ -137,7 +140,9 @@ canvas {
 
 #auth-tablon h2 {
     margin-bottom: 20px;
-    font-size: 24px;
+    font-family: "Jacquard 12", serif;
+    font-size: 36px;
+    font-weight: normal;
 }
 
 #login-form {
@@ -232,7 +237,9 @@ canvas {
 
 #travel-selection h3 {
     margin-top: 20px;
-    font-size: 16px;
+    font-family: "Jacquard 12", serif;
+    font-size: 24px;
+    font-weight: normal;
 }
 
 #other-islands-list {

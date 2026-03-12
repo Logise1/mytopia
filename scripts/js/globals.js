@@ -1,0 +1,200 @@
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const container = document.getElementById('game-container');
+const skinMenu = document.getElementById('skin-menu');
+const startBtn = document.getElementById('start-game');
+const tileSpriteImg = document.getElementById('tile-sprite');
+
+// Configuración de canvas
+canvas.width = 800;
+canvas.height = 600;
+
+// Estado del juego
+let gameState = 'intro';
+let skinColor = '#ffdbac';
+let mouseX = 0;
+let mouseY = 0;
+
+// Stats del Jugador
+const stats = {
+    energy: 100,
+    mood: 1,
+    health: 100
+};
+
+// Mundo y Tiempo
+let worldTime = 12; // De 0 a 24 adaptativo
+let debugTimeOffsetMinutes = 0;
+let uiCyclePhase = 'day'; 
+let uiTransitionAnimTime = -1;
+
+const dayNightColors = {
+    night: { r: 5, g: 5, b: 40, a: 0.6 }, // Azul oscuro traslúcido
+    day: { r: 0, g: 0, b: 0, a: 0 }
+};
+
+// Modo Debug
+const debug = {
+    active: false,
+    panel: null
+};
+
+// Assets HUD
+const hudAssets = {
+    back: new Image(),
+    front: new Image(),
+    heartDay: new Image(),
+    heartNight: new Image(),
+    life: new Image(),
+    tablon: new Image(),
+    pupil: new Image(),
+    cuts: new Image(),
+    light: new Image(),
+    clock1: new Image(),
+    clock2: new Image(),
+    costume1: new Image(),
+    eye1: new Image(),
+    eye2: new Image(),
+    transition1: new Image(),
+    transition2: new Image(),
+    transition3: new Image(),
+    transition4: new Image(),
+    transition5: new Image(),
+    transition6: new Image(),
+    isLoaded: false
+};
+
+// Delta Time
+let lastTime = performance.now();
+let deltaTime = 0;
+
+// Personaje y Animaciones
+const player = {
+    x: 0, // Posición en el mundo
+    y: 0,
+    vx: 0, // Velocidad actual en X
+    vy: 0, // Velocidad actual en Y
+    speed: 1800, // Aceleración aumentada
+    maxSpeed: 500, // Velocidad máxima aumentada
+    friction: 0.9, // Cuanto más bajo, más rápido frena
+    width: 64,
+    height: 64,
+    direction: 'forward',
+    isMoving: false,
+    frame: 0,
+    frameTimer: 0,
+    frameDuration: 0.1, // segundos por frame
+    animations: {
+        forward: [],
+        up: [],
+        left: [],
+        right: []
+    }
+};
+
+// Monstruo Faker
+const faker = {
+    active: false,
+    x: 0,
+    y: 0,
+    vx: 0,
+    vy: 0,
+    speed: 1200,
+    maxSpeed: 300,
+    width: 64,
+    height: 64,
+    direction: 'forward',
+    isMoving: false,
+    frame: 0,
+    frameTimer: 0,
+    frameDuration: 0.1,
+    animations: {
+        forward: [],
+        up: [],
+        left: [],
+        right: []
+    }
+};
+
+// Cámara (seguirá al personaje)
+const camera = {
+    x: 0,
+    y: 0,
+    width: canvas.width,
+    height: canvas.height
+};
+
+const directions = ['forward', 'up', 'left', 'right'];
+const totalFrames = 6;
+
+// Teclas
+const keys = {};
+
+// Assets Suelo
+const tileAssets = {
+    grass: new Image(),
+    sand: new Image(),
+    water1: new Image(),
+    water2: new Image(),
+    water3: new Image(),
+    water4: new Image(),
+    'grass-sand-up': new Image(),
+    'grass-sand-down': new Image(),
+    'grass-sand-left': new Image(),
+    'grass-sand-right': new Image(),
+    'grass-sand-diagonal': new Image(),
+    'wave1': new Image(),
+    'wave2': new Image(),
+    'wave3': new Image(),
+    'wave4': new Image(),
+    'wavebig': new Image(),
+    isLoaded: false
+};
+
+let mapSize = 100;
+const mapData = [];
+const treeData = []; // Guardar posiciones de árboles
+const palmtreeData = []; // Guardar posiciones de palmeras
+const treeAsset = new Image();
+const palmtreeAsset = new Image();
+const planeAsset = new Image();
+const fogAssets = [new Image(), new Image(), new Image()];
+let treeShadowCanvas = null;
+
+let currentIsland = 'home'; 
+let isTraveling = false;
+let currentActionPrompt = null;
+let travelTimer = 0;
+const TRAVEL_TIME = 30; // Real life 30s
+let planeX = 0, planeY = 0;
+
+const islandFeatures = { house: null };
+let currentZone = '';
+let zoneMessageTimer = 0;
+
+// Configuración de Hitbox de Árbol (para ajustes fáciles)
+const treeHitbox = {
+    xRel: 32,
+    yRel: 45,
+    w: 110,
+    h: 30
+};
+
+// Semilla para aleatoriedad consistente
+let seed = 42;
+function seededRandom() {
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+}
+
+// Multiplayer
+const multiplayer = {
+    players: {}, // Otros jugadores
+    userId: null,
+    username: "",
+    lastSend: 0,
+    moveBuffer: [] // Acumular movimientos para enviar
+};
+
+const skinCaches = {}; // Almacenar el spritesheet procesado para cada color de piel visto
+
