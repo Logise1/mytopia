@@ -38,6 +38,10 @@ window.onload = async () => {
     });
 
     // 4. Game loop
+    if (minimapCanvas) {
+        minimapCanvas.width = 160;
+        minimapCanvas.height = 160;
+    }
     requestAnimationFrame(gameLoop);
 };
 
@@ -50,12 +54,13 @@ function gameLoop(currentTime) {
     update(deltaTime);
     applyChromaticAberration();
 
-    // Actualizar otros jugadores (LERP y Anim)
+    // Actualizar otros jugadores (LERP y Anim) con mayor factor para suavidad
     for (let uid in multiplayer.players) {
         const p = multiplayer.players[uid];
-        p.x += (p.targetX - p.x) * 10 * deltaTime;
-        p.y += (p.targetY - p.y) * 10 * deltaTime;
-        if (p.isMoving) p.frame = (p.frame + 10 * deltaTime) % totalFrames;
+        // Factor de 12 para seguir el ritmo de 150ms
+        p.x += (p.targetX - p.x) * 12 * deltaTime;
+        p.y += (p.targetY - p.y) * 12 * deltaTime;
+        if (p.isMoving) p.frame = (p.frame + 12 * deltaTime) % totalFrames;
         else p.frame = 0;
     }
 
@@ -176,6 +181,7 @@ function gameLoop(currentTime) {
     applyDayNightEffect();
     drawHUD();
     drawInteractionPrompt();
+    drawMinimap();
     if (window.updateCharacterPreview) window.updateCharacterPreview();
 
     // Sincronización

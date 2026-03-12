@@ -20,6 +20,10 @@
             <span id="coin-count">500</span>
         </div>
 
+        <div id="minimap-container">
+            <canvas id="minimapCanvas"></canvas>
+        </div>
+
         <div id="inventory-hud">
             <img src="sprites/textures/inventory.png" alt="Inventory">
         </div>
@@ -214,17 +218,23 @@
 
             <div id="travel-progress-ui" class="hidden">
                 <div class="travel-flex">
-                    <div class="travel-news-frame">
-                        <iframe src="https://logise1.github.io/mytopia/periodicos" frameborder="0"></iframe>
-                    </div>
                     <div class="travel-info-overlay">
                         <h2>Viajando... <span class="emoji">✈️</span></h2>
                         <div class="news-ticker">
                             <p>Noticias de Mytopia: ¡Se han avistado peces nuevos en el este!</p>
                         </div>
+                        <div id="flight-map-container">
+                            <div id="flight-path-line"></div>
+                            <span class="island-symbol">🏝️</span>
+                            <span id="travel-plane-emoji">✈️</span>
+                            <span class="island-symbol">🏝️</span>
+                        </div>
                         <div class="progress-bar-bg">
                             <div class="progress-bar-fill" id="flight-bar"></div>
                         </div>
+                    </div>
+                    <div class="travel-news-frame">
+                        <iframe src="https://logise1.github.io/mytopia/periodicos" frameborder="0"></iframe>
                     </div>
                 </div>
             </div>

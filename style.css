@@ -340,21 +340,35 @@ canvas {
     display: flex;
     flex-direction: column;
     pointer-events: none; /* Dejar que se pueda scrollear el iframe si hace falta */
+    width: 100%;
+    position: relative; /* No absoluto para que esté arriba de forma normal */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px 20px;
+    background: rgba(93, 51, 80, 0.9);
+    border-bottom: 3px solid #ffb58b;
+    display: flex;
+    flex-direction: column;
+    pointer-events: auto;
     z-index: 10;
 }
 
 .travel-info-overlay h2, .travel-info-overlay .news-ticker {
     text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
     pointer-events: auto;
+    z-index: 10;
 }
 
 .travel-news-frame {
-    width: 100%;
+    align-self: flex-end; /* Echa a la derecha el iframe */
+    width: 70%;
     height: 100%;
-    max-width: 480px; /* Ajustado para que quepa bien el periodico */
+    max-width: none;
     background: white;
-    border: 4px solid #5d3350;
-    border-radius: 8px;
+    border: none;
+    border-left: 4px solid #5d3350;
+    border-radius: 0;
     overflow: hidden;
     position: relative;
     z-index: 1;
@@ -578,8 +592,8 @@ canvas {
 /* --- HUD DE INVENTARIO --- */
 #inventory-hud {
     position: absolute;
-    top: 20px;
-    right: 20px;
+    top: 200px; /* Bajado para dejar sitio al minimapa */
+    right: 10px;
     z-index: 1000;
     cursor: pointer;
     transition: transform 0.2s;
@@ -878,9 +892,27 @@ canvas {
 .cloud.b-r { bottom: -15px; right: -20px; animation-delay: 0.5s; }
 
 .inv-slot::after {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
     background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%);
     pointer-events: none;
+}
+
+/* --- MINIMAPA --- */
+#minimap-container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 160px;
+    height: 160px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 3px solid #ffb58b;
+    border-radius: 8px;
+    overflow: hidden;
+    z-index: 1200;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+#minimapCanvas {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
 }

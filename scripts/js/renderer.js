@@ -1189,3 +1189,95 @@ function applyChromaticAberration() {
         canvas.style.transform = 'none';
     }
 }
+// --- MINIMAPA ---
+function drawMinimap() {
+    if (!minimapCtx || !mapData.length) return;
+
+    const mSize = mapSize;
+    const tileW = minimapCanvas.width / mSize;
+    const tileH = minimapCanvas.height / mSize;
+
+    // 1. Dibujar Tiles
+    for (let y = 0; y < mSize; y++) {
+        for (let x = 0; x < mSize; x++) {
+            const tile = mapData[y][x];
+            if (tile === 'water' || tile.includes('wave')) {
+                minimapCtx.fillStyle = '#0f5e9c';
+            } else if (tile.includes('grass')) {
+                minimapCtx.fillStyle = '#2d5a27';
+            } else if (tile.includes('sand')) {
+                minimapCtx.fillStyle = '#d2b48c';
+            } else if (tile.includes('brik')) {
+                minimapCtx.fillStyle = '#555';
+            } else if (tile === 'woodFloor') {
+                minimapCtx.fillStyle = '#654321';
+            } else {
+                minimapCtx.fillStyle = '#111';
+            }
+            minimapCtx.fillRect(x * tileW, y * tileH, tileW + 0.1, tileH + 0.1);
+        }
+    }
+
+    // 2. Dibujar Otros Jugadores
+    for (let uid in multiplayer.players) {
+        const p = multiplayer.players[uid];
+        drawMinimapArrow(p.x, p.y, p.direction, p.skin || '#ffdbac', false);
+    }
+
+    // 3. Dibujar Jugador Local
+    drawMinimapArrow(player.x, player.y, player.direction, '#ffffff', true);
+
+    // 4. Dibujar Avión (Emojis si es posible o un icono)
+    if (planeX !== 0) {
+        const px = (planeX * 64) / (mSize * 64) * minimapCanvas.width;
+        const py = (planeY * 64) / (mSize * 64) * minimapCanvas.height;
+        minimapCtx.font = "12px Arial";
+        minimapCtx.textAlign = "center";
+        minimapCtx.textBaseline = "middle";
+        minimapCtx.fillText("✈️", px, py);
+    }
+
+    // 5. Faker
+    if (faker && faker.active) {
+        drawMinimapArrow(faker.x, faker.y, faker.direction, '#ff0000', false);
+    }
+}
+
+function drawMinimapArrow(worldX, worldY, direction, color, isLocal) {
+    const mx = (worldX / (mapSize * 64)) * minimapCanvas.width;
+    const my = (worldY / (mapSize * 64)) * minimapCanvas.height;
+
+    const angleMap = {
+        'forward': Math.PI / 2,
+        'up': -Math.PI / 2,
+        'left': Math.PI,
+        'right': 0
+    };
+    const angle = angleMap[direction] || 0;
+
+    minimapCtx.save();
+    minimapCtx.translate(mx, my);
+    minimapCtx.rotate(angle);
+
+    minimapCtx.fillStyle = color;
+    if (isLocal) {
+        minimapCtx.shadowColor = "white";
+        minimapCtx.shadowBlur = 5;
+    }
+
+    // Dibujar flecha (triángulo)
+    minimapCtx.beginPath();
+    minimapCtx.moveTo(6, 0);   // Punta
+    minimapCtx.lineTo(-4, -4); // Base izq
+    minimapCtx.lineTo(-4, 4);  // Base der
+    minimapCtx.closePath();
+    minimapCtx.fill();
+
+    if (isLocal) {
+        minimapCtx.strokeStyle = "black";
+        minimapCtx.lineWidth = 1;
+        minimapCtx.stroke();
+    }
+
+    minimapCtx.restore();
+}

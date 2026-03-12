@@ -201,9 +201,9 @@ function startSync() {
 function sendMovement() {
     if (!multiplayer.userId || gameState !== 'playing') return;
 
-    // Configuración de intervalos
-    const NORMAL_INTERVAL = 500;   // 0.5s (con gente cerca)
-    const IDLE_INTERVAL = 5000;    // 5s (solo o lejos)
+    // Configuración de intervalos (Reducidos para mayor suavidad)
+    const NORMAL_INTERVAL = 150;   // 0.15s (antes 0.5s) mejor respuesta
+    const IDLE_INTERVAL = 3000;    // 3s (antes 5s)
     const NEAR_DISTANCE = 1200;    // Radio de "cercanía"
 
     // Determinar si hay alguien cerca

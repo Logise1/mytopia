@@ -1,5 +1,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const minimapCanvas = document.getElementById('minimapCanvas');
+const minimapCtx = minimapCanvas ? minimapCanvas.getContext('2d') : null;
 const container = document.getElementById('game-container');
 const skinMenu = document.getElementById('skin-menu');
 const startBtn = document.getElementById('start-game');
