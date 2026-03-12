@@ -996,45 +996,43 @@ function drawInteractionPrompt() {
     }
 }
 
-function drawFurniture() {
-    homeFurniture.forEach(f => {
-        const dx = f.x - camera.x;
-        const dy = f.y - camera.y;
+function drawFurnitureSingle(f) {
+    const dx = f.x - camera.x;
+    const dy = f.y - camera.y;
 
-        ctx.save();
-        ctx.translate(dx, dy);
-        
-        // Renderizado basado en placeholders de CSS (pero en Canvas)
-        if (f.type === 'sofa') {
-            ctx.fillStyle = '#a52a2a';
-            ctx.fillRect(-32, -32, 64, 54);
-            ctx.fillStyle = '#5c1818';
-            ctx.fillRect(-32, 22, 64, 10);
-        } else if (f.type === 'table') {
-            ctx.fillStyle = '#8b4513';
-            ctx.fillRect(-32, -10, 64, 15); // Sobre
-            ctx.fillRect(-28, 5, 8, 27); // Pata izq
-            ctx.fillRect(20, 5, 8, 27); // Pata der
-        } else if (f.type === 'bed') {
-            ctx.fillStyle = '#4682b4';
-            ctx.fillRect(-32, -32, 64, 64);
-            ctx.fillStyle = 'white';
-            ctx.fillRect(8, -28, 20, 20); // Almohada
-        } else if (f.type === 'rug') {
-            ctx.globalAlpha = 0.8;
-            ctx.fillStyle = '#ff69b4';
-            ctx.beginPath();
-            ctx.ellipse(0, 0, 48, 24, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
+    ctx.save();
+    ctx.translate(dx, dy);
+    
+    // Renderizado basado en placeholders de CSS (pero en Canvas)
+    if (f.type === 'sofa') {
+        ctx.fillStyle = '#a52a2a';
+        ctx.fillRect(-32, -32, 64, 54);
+        ctx.fillStyle = '#5c1818';
+        ctx.fillRect(-32, 22, 64, 10);
+    } else if (f.type === 'table') {
+        ctx.fillStyle = '#8b4513';
+        ctx.fillRect(-32, -10, 64, 15); // Sobre
+        ctx.fillRect(-28, 5, 8, 27); // Pata izq
+        ctx.fillRect(20, 5, 8, 27); // Pata der
+    } else if (f.type === 'bed') {
+        ctx.fillStyle = '#4682b4';
+        ctx.fillRect(-32, -32, 64, 64);
+        ctx.fillStyle = 'white';
+        ctx.fillRect(8, -28, 20, 20); // Almohada
+    } else if (f.type === 'rug') {
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = '#ff69b4';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 48, 24, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
 
-        // Si es el mueble seleccionado para mover
-        if (selectedFurniture === f) {
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(-35, -35, 70, 70);
-        }
+    // Si es el mueble seleccionado para mover
+    if (selectedFurniture === f) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-35, -35, 70, 70);
+    }
 
-        ctx.restore();
-    });
+    ctx.restore();
 }

@@ -124,9 +124,13 @@ function generateIsland(islandId) {
 }
 
 function enterHouse(baseIslandId) {
-    // Añadimos el userId para que la casa sea PRIVADA
-    currentIsland = baseIslandId + '_inside_' + (multiplayer.userId || 'anon');
+    // La casa pertenece al DUEÑO DE LA ISLA donde está la puerta
+    const ownerUid = multiplayer.currentIslandOwnerUid || multiplayer.userId;
+    currentIsland = baseIslandId + '_inside_' + ownerUid;
+    
     generateIsland(currentIsland);
+    loadFurniture(ownerUid); // Cargar muebles del dueño
+
     player.x = (mapSize / 2) * 64;
     player.y = (mapSize / 2 + 4) * 64;
     multiplayer.players = {};

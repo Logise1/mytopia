@@ -243,7 +243,8 @@ const multiplayer = {
     lastSend: 0,
     status: "Explorando",
     friends: [], // Lista de UIDs de amigos
-    allUsers: {} // Cache de todos los usuarios para añadir amigos
+    allUsers: {}, // Cache de todos los usuarios para añadir amigos
+    currentIslandOwnerUid: null
 };
 
 const skinCaches = {}; // Almacenar el spritesheet procesado para cada color de piel visto

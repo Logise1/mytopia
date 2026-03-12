@@ -543,6 +543,28 @@ canvas {
     image-rendering: pixelated;
 }
 
+/* --- HUD DE INVENTARIO --- */
+#inventory-hud {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+#inventory-hud img {
+    width: 64px;
+    height: auto; /* Mantener aspecto */
+    max-height: 64px;
+    image-rendering: pixelated;
+    object-fit: contain;
+}
+
+#inventory-hud:hover {
+    transform: scale(1.1);
+}
+
 /* --- EDITOR DE MUEBLES --- */
 #furniture-editor {
     position: absolute;

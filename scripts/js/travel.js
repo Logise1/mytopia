@@ -11,8 +11,8 @@ function openTravelMenu() {
     // Ya no necesitamos lógica de configuración manual de amigos aquí
 
 
-    document.getElementById('go-home-btn').onclick = () => startTravel('home');
-    document.getElementById('go-central-btn').onclick = () => startTravel('central');
+    document.getElementById('go-home-btn').onclick = () => startTravel('home', multiplayer.userId);
+    document.getElementById('go-central-btn').onclick = () => startTravel('central', 'world');
     document.getElementById('close-travel-btn').onclick = () => {
         document.getElementById('travel-menu').classList.add('hidden');
     };
@@ -36,17 +36,18 @@ function refreshOtherIslandsList() {
         btn.className = 'travel-btn';
         btn.innerText = `🏝️ Isla de ${userData.username}`;
         // Para viajar usamos el username o el UID dependiendo de cómo esté montado el generador
-        btn.onclick = () => startTravel(userData.username.toLowerCase());
+        btn.onclick = () => startTravel(userData.username.toLowerCase(), fUid);
         list.appendChild(btn);
     });
 }
 
-function startTravel(targetId) {
+function startTravel(targetId, ownerUid) {
     if (targetIslandIsSame(targetId)) {
         alert("¡Ya estás en esa isla!"); return;
     }
 
     targetTravelIsland = targetId;
+    targetTravelOwner = ownerUid;
     isTraveling = true;
     travelTimer = 0.01;
     gameState = 'traveling';
@@ -67,6 +68,7 @@ function completeTravel() {
     travelTimer = 0;
     gameState = 'playing';
     currentIsland = targetTravelIsland;
+    multiplayer.currentIslandOwnerUid = targetTravelOwner;
     const menuEl = document.getElementById('travel-menu');
     if (menuEl) {
         menuEl.classList.add('hidden');

@@ -159,7 +159,9 @@ function gameLoop(currentTime) {
 
     // Dibujar muebles si estamos dentro
     if (isInside) {
-        renderList.push({ y: 0, draw: () => drawFurniture() }); 
+        homeFurniture.forEach(f => {
+            renderList.push({ y: f.y, draw: () => drawFurnitureSingle(f) }); 
+        });
     }
 
     // Ordenar y dibujar (Capa de profundidad)
@@ -241,11 +243,12 @@ document.querySelectorAll('.furniture-item').forEach(item => {
             
             const newF = {
                 type: type,
-                x: player.x, // Aparece donde está el jugador
-                y: player.y
+                x: Math.floor(player.x / 64) * 64 + 32, // Centrado en la tile
+                y: Math.floor(player.y / 64) * 64 + 32
             };
             homeFurniture.push(newF);
             selectedFurniture = newF;
+            saveFurniture(); // Guardar al comprar
         } else {
             alert("¡No tienes suficientes MyMonedas! 🪙");
         }
@@ -274,11 +277,15 @@ canvas.addEventListener('mousedown', (e) => {
 
 canvas.addEventListener('mousemove', (e) => {
     if (selectedFurniture) {
-        selectedFurniture.x = mouseX + camera.x;
-        selectedFurniture.y = mouseY + camera.y;
+        // Snap al centro de la tile de 64x64
+        selectedFurniture.x = Math.floor((mouseX + camera.x) / 64) * 64 + 32;
+        selectedFurniture.y = Math.floor((mouseY + camera.y) / 64) * 64 + 32;
     }
 });
 
 canvas.addEventListener('mouseup', () => {
+    if (selectedFurniture) {
+        saveFurniture(); // Guardar al soltar
+    }
     selectedFurniture = null;
 });

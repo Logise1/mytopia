@@ -199,3 +199,32 @@ function sendMovement() {
     });
 }
 
+// --- PERSISTENCIA DE MUEBLES Y ECONOMÍA ---
+async function saveFurniture() {
+    if (!multiplayer.userId) return;
+    try {
+        await fb.setDoc(fb.doc(fs, "furniture", multiplayer.userId), {
+            items: homeFurniture,
+            coins: coinCount
+        });
+    } catch (e) {
+        console.error("Error salvando muebles:", e);
+    }
+}
+
+async function loadFurniture(ownerUid) {
+    homeFurniture = [];
+    try {
+        const docSnap = await fb.getDoc(fb.doc(fs, "furniture", ownerUid));
+        if (docSnap.exists()) {
+            homeFurniture = docSnap.data().items || [];
+            if (ownerUid === multiplayer.userId) {
+                coinCount = docSnap.data().coins || 500;
+                document.getElementById('coin-count').innerText = coinCount;
+            }
+        }
+    } catch (e) {
+        console.error("Error cargando muebles:", e);
+    }
+}
+
