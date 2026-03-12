@@ -1141,10 +1141,10 @@ function drawFurnitureSingle(f) {
         ctx.fill();
     }
 
-    // Si es el mueble seleccionado para mover
-    if (selectedFurniture === f) {
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#fff';
+    // Si es el mueble seleccionado para mover o para editar
+    if (selectedFurniture === f || editingFurniture === f) {
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = (selectedFurniture === f) ? '#fff' : '#ffcc00'; // Blanco drag, Amarillo edit
         if (f.type === 'sofa') {
             ctx.strokeRect(dx - 96, dy - 32, 192, 64);
         } else {

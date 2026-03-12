@@ -70,7 +70,7 @@
 
         <!-- Menú de color de MUEBLES -->
         <div id="furniture-color-menu" class="hidden">
-            <h3>Color del Mueble</h3>
+            <h3>Opciones del Mueble</h3>
             <div class="color-options">
                 <button class="f-color-btn" style="background-color: #ff0000;" data-color="#ff0000"></button>
                 <button class="f-color-btn" style="background-color: #00ff00;" data-color="#00ff00"></button>
@@ -82,7 +82,10 @@
                 <button class="f-color-btn" style="background-color: #8b4513;" data-color="#8b4513"></button>
                 <button class="f-color-btn" style="background-color: #5d3350;" data-color="#5d3350"></button>
             </div>
-            <button id="close-f-color-menu">Hecho</button>
+            <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                <button id="delete-furniture-btn" style="background-color: #ff4444; color: white;">🗑️ Borrar y Reembolsar</button>
+                <button id="close-f-color-menu">Hecho</button>
+            </div>
         </div>
         
         <!-- Menú de Edición de Muebles -->
@@ -150,6 +153,18 @@
                         <p class="mission-text">SURVIVE THE NIGHT</p>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Menú Social / Amigos -->
+        <div id="social-menu" class="hidden">
+            <div id="social-header">Amigos Mytopianos</div>
+            <div id="friends-list">
+                <!-- Se llena dinámicamente -->
+            </div>
+            <div id="social-search">
+                <input type="text" id="friend-search-input" placeholder="Buscar usuario...">
+                <button id="add-friend-btn">+</button>
             </div>
         </div>
     </div>

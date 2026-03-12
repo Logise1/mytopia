@@ -13,6 +13,8 @@ function initSocial() {
         updateFriendsUI();
     });
 
+    if (!addBtn) return;
+
     addBtn.onclick = () => {
         const nameToAdd = searchInput.value.trim();
         if (!nameToAdd) return;

@@ -189,6 +189,14 @@ const furnitureAssets = {
     isLoaded: false
 };
 const fogAssets = [new Image(), new Image(), new Image()];
+const audioAssets = {
+    ambience: new Audio('sfx/music/ambiencemonsters.mp3'),
+    chase: new Audio('sfx/music/persecucion.mp3'),
+    chaseTimer: 0,
+    chaseDelay: 10 + Math.random() * 5, // 10-15s
+    ambienceTimer: 0,
+    isDead: false
+};
 let treeShadowCanvas = null;
 let mytopianFriends = []; // Array of saved friend names
 let hasSetFriends = false;
@@ -258,5 +266,6 @@ const skinCaches = {}; // Almacenar el spritesheet procesado para cada color de 
 // --- ECONOMÍA Y DECORACIÓN ---
 let coinCount = 500;
 let homeFurniture = []; // [{type: 'sofa', x: 100, y: 100}]
-let selectedFurniture = null; // Mueble que estamos arrastrando o colocando
+let selectedFurniture = null; // Mueble que estamos arrastrando
+let editingFurniture = null;  // Mueble seleccionado para cambiar propiedades (color/borrar)
 

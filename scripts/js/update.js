@@ -341,7 +341,15 @@ function update(dt) {
 
     // --- LÓGICA DE MONSTRUO FAKER ---
     const isNightForFaker = (worldTime >= 18 || worldTime < 6);
-    if (!isInside && isNightForFaker && gameState === 'playing') {
+    const canSpawnFaker = !isInside && isNightForFaker && gameState === 'playing' && !isTraveling;
+
+    if (faker.active && !canSpawnFaker) {
+        faker.active = false;
+        faker.spawnState = 'hidden';
+        faker.strength = 0;
+    }
+
+    if (canSpawnFaker) {
         if (!faker.active) {
             // Inicializar tiempo de espera aleatorio si no se ha hecho
             if (faker.spawnWait <= 0) {
@@ -445,6 +453,47 @@ function update(dt) {
         faker.spawnState = 'hidden';
         faker.spawnWait = 0; // Reset para la siguiente noche
     }
+
+    // --- LÓGICA DE AUDIO DE TERROR ---
+    if (gameState === 'dead') {
+        // Fade out al morir
+        if (audioAssets.ambience.volume > 0) audioAssets.ambience.volume = Math.max(0, audioAssets.ambience.volume - dt * 0.5);
+        if (audioAssets.chase.volume > 0) audioAssets.chase.volume = Math.max(0, audioAssets.chase.volume - dt * 0.5);
+        if (audioAssets.chase.volume <= 0) {
+            audioAssets.chase.pause();
+            audioAssets.ambience.pause();
+        }
+    } else if (isNightForFaker && !isInside && gameState === 'playing' && !isTraveling) {
+        if (faker.active) {
+            // Persecución inmediata si el monstruo existe
+            if (audioAssets.chase.paused) {
+                audioAssets.chase.play().catch(() => {});
+                audioAssets.ambience.pause(); // Prioridad a la persecución
+            }
+        } else {
+            // Si el monstruo no está, parar persecución
+            if (!audioAssets.chase.paused) {
+                audioAssets.chase.pause();
+                audioAssets.chase.currentTime = 0;
+            }
+
+            // Sonidos de ambiente aleatorios
+            if (audioAssets.ambience.paused) {
+                if (audioAssets.ambienceTimer <= 0) {
+                    audioAssets.ambience.play().catch(() => {});
+                    audioAssets.ambienceTimer = 15 + Math.random() * 20; 
+                } else {
+                    audioAssets.ambienceTimer -= dt;
+                }
+            }
+        }
+    } else {
+        // Es de día o está a salvo: Silencio
+        if (!audioAssets.chase.paused) audioAssets.chase.pause();
+        if (!audioAssets.ambience.paused) audioAssets.ambience.pause();
+        audioAssets.chaseTimer = 0;
+    }
+
 }
 
 function resolveMapCollisions(isX, oldVal) {

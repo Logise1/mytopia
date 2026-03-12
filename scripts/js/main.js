@@ -17,7 +17,8 @@ window.onload = async () => {
         loadAllAnimations(),
         loadHUDAssets(),
         loadTileAssets(),
-        loadFurnitureAssets()
+        loadFurnitureAssets(),
+        loadAudioAssets()
     ]);
 
     // Posicionar jugador en el centro de la isla
@@ -233,12 +234,13 @@ window.addEventListener('keydown', e => {
     }
 });
 
+const furniturePrices = { sofa: 100, table: 50, bed: 150, rug: 30 };
+
 document.querySelectorAll('.furniture-item').forEach(item => {
     item.onclick = (e) => {
         e.stopPropagation();
         const type = item.dataset.type;
-        const prices = { sofa: 100, table: 50, bed: 150, rug: 30 };
-        const price = prices[type];
+        const price = furniturePrices[type];
 
         if (coinCount >= price) {
             coinCount -= price;
@@ -247,10 +249,12 @@ document.querySelectorAll('.furniture-item').forEach(item => {
             const newF = {
                 type: type,
                 x: Math.floor(player.x / 64) * 64 + 32, // Centrado en la tile
-                y: Math.floor(player.y / 64) * 64 + 32
+                y: Math.floor(player.y / 64) * 64 + 32,
+                color: '#ffffff' // Default white tint
             };
             homeFurniture.push(newF);
             selectedFurniture = newF;
+            editingFurniture = newF;
             saveFurniture(); // Guardar al comprar
         } else {
             alert("¡No tienes suficientes MyMonedas! 🪙");
@@ -266,17 +270,38 @@ document.getElementById('close-furniture-btn').onclick = () => {
 // Selección de color de MUEBLES
 document.querySelectorAll('.f-color-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        if (selectedFurniture) {
+        if (editingFurniture) {
             document.querySelector('.f-color-btn.selected')?.classList.remove('selected');
             e.target.classList.add('selected');
-            selectedFurniture.color = e.target.dataset.color;
+            editingFurniture.color = e.target.dataset.color;
             saveFurniture();
         }
     });
 });
 
+// Borrar mueble y devolver dinero
+document.getElementById('delete-furniture-btn').addEventListener('click', () => {
+    if (editingFurniture) {
+        const type = editingFurniture.type;
+        const refund = furniturePrices[type] || 0;
+        
+        // Devolver dinero
+        coinCount += refund;
+        document.getElementById('coin-count').innerText = coinCount;
+        
+        // Eliminar del array
+        homeFurniture = homeFurniture.filter(f => f !== editingFurniture);
+        
+        editingFurniture = null;
+        selectedFurniture = null;
+        document.getElementById('furniture-color-menu').classList.add('hidden');
+        saveFurniture();
+    }
+});
+
 document.getElementById('close-f-color-menu').addEventListener('click', () => {
     document.getElementById('furniture-color-menu').classList.add('hidden');
+    editingFurniture = null;
 });
 
 // Arrastrar muebles
@@ -299,9 +324,8 @@ canvas.addEventListener('mousedown', (e) => {
 
         if (hit) {
             selectedFurniture = f;
-            if (f.type === 'sofa') {
-                document.getElementById('furniture-color-menu').classList.remove('hidden');
-            }
+            editingFurniture = f; // Mantener para el menú
+            document.getElementById('furniture-color-menu').classList.remove('hidden');
         }
     });
 });

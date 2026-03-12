@@ -45,6 +45,7 @@ async function initFirebase() {
             }
             
             // Generar la isla actual usando la semilla del usuario o tipo correcto
+            multiplayer.currentIslandOwnerUid = user.uid; // Por defecto al loguear es nuestra casa
             generateIsland(currentIsland);
 
             startSync();
@@ -164,7 +165,8 @@ function startSync() {
 
             const pData = data[uid];
             // Solo ver a los que están EXACTAMENTE en la misma instancia de isla
-            if (pData.island !== currentIsland) {
+            const myIslandKey = currentIsland + (multiplayer.currentIslandOwnerUid ? "_" + multiplayer.currentIslandOwnerUid : "");
+            if (pData.island !== myIslandKey) {
                 if (multiplayer.players[uid]) delete multiplayer.players[uid];
                 continue;
             }
@@ -222,6 +224,7 @@ function sendMovement() {
 
     multiplayer.lastSend = now;
     const myRef = fb.ref(db, `players/${multiplayer.userId}`);
+    const myIslandKey = currentIsland + (multiplayer.currentIslandOwnerUid ? "_" + multiplayer.currentIslandOwnerUid : "");
     fb.update(myRef, {
         x: player.x,
         y: player.y,
@@ -229,7 +232,7 @@ function sendMovement() {
         isMoving: player.isMoving,
         username: multiplayer.username,
         skin: skinColor,
-        island: currentIsland,
+        island: myIslandKey,
         status: multiplayer.status
     });
 }

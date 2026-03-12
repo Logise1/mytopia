@@ -326,23 +326,25 @@ canvas {
     display: flex;
     gap: 20px;
     align-items: stretch;
-    height: 300px;
+    height: 450px; /* Mas alto */
 }
 
 .travel-info {
-    flex: 1;
+    flex: 1; /* Mitad para info */
     display: flex;
     flex-direction: column;
     justify-content: center;
 }
 
 .travel-news-frame {
-    flex: 1.5;
+    flex: 2; /* Mas espacio al dibujo pero controlado por el flex-container */
+    max-width: 400px; /* Menos ancho */
     background: white;
     border: 4px solid #5d3350;
     border-radius: 8px;
     overflow: hidden;
     height: 100%;
+    margin: 0 auto;
 }
 
 .travel-news-frame iframe {

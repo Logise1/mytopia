@@ -100,6 +100,12 @@ async function loadHUDAssets() {
     hudAssets.isLoaded = true;
 }
 
+async function loadAudioAssets() {
+    audioAssets.ambience.volume = 0.5;
+    audioAssets.chase.volume = 0.6;
+    audioAssets.chase.loop = true;
+}
+
 async function loadAllAnimations() {
     const loadPromises = [];
 
