@@ -208,9 +208,9 @@ const treeHitbox = {
 
 const houseHitbox = {
     xRel: 64, // Centrado relativo al anchor
-    yRel: 130, // Cerca de la base
+    yRel: 65, // Alineado con la base visual (hy + 80)
     w: 120,
-    h: 60
+    h: 40
 };
 
 const palmtreeHitbox = {

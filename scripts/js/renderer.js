@@ -198,20 +198,20 @@ function drawHouseShadow() {
     ctx.save();
     ctx.globalAlpha = sun.alpha;
 
-    const HOUSE_SCALE = 3.5;
-    const targetW = houseAsset.naturalWidth * HOUSE_SCALE;
-    const targetH = houseAsset.naturalHeight * HOUSE_SCALE;
-
-    const baseX = hx + houseHitbox.xRel;
-    const baseY = hy + houseHitbox.yRel + houseHitbox.h / 2;
+    const targetW = houseAsset.naturalWidth * 3.5;
+    
+    // El punto de apoyo visual de la casa es hy + 80
+    const baseX = hx + 64; 
+    const baseY = hy + 75;
 
     ctx.save();
     ctx.translate(baseX, baseY);
     ctx.transform(1, 0, sun.skewAmount, sun.scaleAmount, 0, 0);
 
-    ctx.fillStyle = '#0f0514';
+    // Sombra más suave y coherente
+    ctx.fillStyle = 'rgba(15, 5, 20, 0.4)';
     ctx.beginPath();
-    ctx.ellipse(0, 0, targetW / 2, 40 * sun.scaleAmount, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, targetW * 0.45, 30 * sun.scaleAmount, 0, 0, Math.PI * 2);
     ctx.fill();
     
     ctx.restore();

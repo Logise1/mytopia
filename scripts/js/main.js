@@ -118,7 +118,7 @@ function gameLoop(currentTime) {
     if (islandFeatures.house) {
         const hx = islandFeatures.house.x * 64;
         const hy = islandFeatures.house.y * 64;
-        renderList.push({ y: hy + 160, draw: () => drawHouse(hx - camera.x, hy - camera.y) });
+        renderList.push({ y: hy + 80, draw: () => drawHouse(hx - camera.x, hy - camera.y) });
     }
 
     if (islandFeatures.dock) {
@@ -166,6 +166,33 @@ window.addEventListener('keydown', e => {
         const socialMenu = document.getElementById('social-menu');
         if (socialMenu) {
             socialMenu.classList.toggle('hidden');
+        }
+    }
+
+    // --- Soporte global para ENTER / X en botones ---
+    if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'KeyX') {
+        // 1. Iniciar juego si el menú de skin está abierto
+        const skinMenu = document.getElementById('skin-menu');
+        if (skinMenu && !skinMenu.classList.contains('hidden')) {
+            document.getElementById('start-game').click();
+        }
+
+        // 2. Cerrar menú de casa
+        const houseMenu = document.getElementById('house-menu');
+        if (houseMenu && !houseMenu.classList.contains('hidden')) {
+            document.getElementById('close-house-menu').click();
+        }
+
+        // 3. Añadir amigo si el input está enfocado
+        const friendInput = document.getElementById('friend-search-input');
+        if (friendInput === document.activeElement) {
+            document.getElementById('add-friend-btn').click();
+        }
+        
+        // 4. Auth (Login/Register)
+        const authMenu = document.getElementById('auth-menu');
+        if (authMenu && !authMenu.classList.contains('hidden')) {
+            document.getElementById('auth-action-btn').click();
         }
     }
 });

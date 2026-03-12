@@ -1,4 +1,6 @@
 function update(dt) {
+    const isInside = currentIsland.endsWith('_inside');
+
     // --- LÓGICA DE VIAJE ---
     if (gameState === 'traveling') {
         const menuEl = document.getElementById('travel-menu');
@@ -67,9 +69,6 @@ function update(dt) {
         return; // Evita actualizar físicas u otros controles mientras viajas
     }
 
-    if (gameState !== 'playing' && gameState !== 'customizing') return;
-
-    const isInside = currentIsland.endsWith('_inside');
     let ax = 0;
     let ay = 0;
     let inputMoving = false;
@@ -153,9 +152,17 @@ function update(dt) {
     const minVel = 10;
     player.isMoving = (currentSpeed > minVel);
 
-    // Mover personaje
+    // Guardar posición anterior para resolver colisiones
+    const oldX = player.x;
+    const oldY = player.y;
+
+    // --- MOVIMIENTO EN X ---
     player.x += player.vx * dt;
+    resolveMapCollisions(true, oldX);
+
+    // --- MOVIMIENTO EN Y ---
     player.y += player.vy * dt;
+    resolveMapCollisions(false, oldY);
 
     // --- COLISIÓN CON ÁRBOLES ---
     const pCenterX = player.x + player.width / 2;
@@ -255,57 +262,8 @@ function update(dt) {
         }
     }
 
-    // --- COLISIÓN CON AGUA / PAREDES (No dejar salir de la isla o casa) ---
-    const checkPoints = [
-        { x: player.x + 22, y: player.y + player.height - 2 },
-        { x: player.x + player.width - 22, y: player.y + player.height - 2 }
-    ];
+    // Actualizar Cámara de forma SUAVE (Lerp)
 
-    checkPoints.forEach(pt => {
-        const tx = Math.floor(pt.x / 64);
-        const ty = Math.floor(pt.y / 64);
-        
-        if (ty >= 0 && ty < mapSize && tx >= 0 && tx < mapSize) {
-            const tile = mapData[ty][tx];
-            const isDockArea = islandFeatures.dock && tx === islandFeatures.dock.x && ty === islandFeatures.dock.y;
-            const isPlaneDock = tx >= planeX - 1 && tx <= planeX + 1 && ty === planeY;
-            
-            let walkable = false;
-            if (isInside) {
-                walkable = tile === 'woodFloor';
-            } else {
-                walkable = tile === 'grass' || tile === 'sand' || tile.startsWith('grass-sand') || 
-                           tile.startsWith('brik') || isDockArea || isPlaneDock;
-            }
-            
-            if (!walkable) {
-                // Cálculo de empuje preciso para evitar teletransporte
-                const tileLeft = tx * 64;
-                const tileTop = ty * 64;
-                const tileRight = tileLeft + 64;
-                const tileBottom = tileTop + 64;
-
-                const distL = pt.x - tileLeft;
-                const distR = tileRight - pt.x;
-                const distT = pt.y - tileTop;
-                const distB = tileBottom - pt.y;
-
-                const minDist = Math.min(distL, distR, distT, distB);
-
-                if (minDist === distL) player.x -= (distL + 1);
-                else if (minDist === distR) player.x += (distR + 1);
-                else if (minDist === distT) player.y -= (distT + 1);
-                else if (minDist === distB) player.y += (distB + 1);
-
-                player.vx = 0;
-                player.vy = 0;
-            }
-        } else if (!isInside) {
-            // Fuera de límites en isla (agua infinita)
-            player.x += (mapSize * 32 - player.x) * 0.05;
-            player.y += (mapSize * 32 - player.y) * 0.05;
-        }
-    });
 
     // Actualizar Cámara de forma SUAVE (Lerp)
     const targetCamX = player.x - canvas.width / 2 + player.width / 2;
@@ -338,22 +296,25 @@ function update(dt) {
     if (!isInside) {
         const distPlane = Math.hypot(player.x - (planeX * 64 + 32), player.y - (planeY * 64 + 32));
         if (distPlane < 100 && !isTraveling && gameState === 'playing') {
-            currentActionPrompt = "[ENTER] Viajar";
-            if (keys['Enter']) {
+            currentActionPrompt = "[ENTER/X] Viajar";
+            if (keys['Enter'] || keys['NumpadEnter'] || keys['KeyX']) {
                 openTravelMenu();
                 keys['Enter'] = false;
+                keys['KeyX'] = false;
             }
         }
 
         if (islandFeatures.house) {
             const hx = islandFeatures.house.x * 64;
             const hy = islandFeatures.house.y * 64;
-            const distHouse = Math.hypot(player.x - (hx + 64), player.y - (hy + 155));
-            if (distHouse < 120 && !isTraveling && gameState === 'playing') {
-                currentActionPrompt = "[ENTER] Entrar | [R] Casa";
-                if (keys['Enter']) {
+            // El punto de la puerta es aproximadamente hx+64, hy+80 (base visual)
+            const distHouse = Math.hypot(player.x - (hx + 64), player.y - (hy + 100));
+            if (distHouse < 100 && !isTraveling && gameState === 'playing') {
+                currentActionPrompt = "[ENTER/X] Entrar | [R] Casa";
+                if (keys['Enter'] || keys['NumpadEnter'] || keys['KeyX']) {
                     enterHouse(currentIsland);
                     keys['Enter'] = false;
+                    keys['KeyX'] = false;
                 }
                 if (keys['KeyR']) {
                     gameState = 'customizing';
@@ -367,10 +328,11 @@ function update(dt) {
         const doorY = (mapSize/2 + 5)*64;
         const distDoor = Math.hypot(player.x - doorX, player.y - doorY);
         if (distDoor < 80 && !isTraveling && gameState === 'playing') {
-            currentActionPrompt = "[ENTER] Salir";
-            if (keys['Enter']) {
+            currentActionPrompt = "[ENTER/X] Salir";
+            if (keys['Enter'] || keys['NumpadEnter'] || keys['KeyX']) {
                 exitHouse();
                 keys['Enter'] = false;
+                keys['KeyX'] = false;
             }
         }
     }
@@ -468,6 +430,51 @@ function update(dt) {
         faker.active = false;
         faker.spawnState = 'hidden';
         faker.spawnWait = 0; // Reset para la siguiente noche
+    }
+}
+
+function resolveMapCollisions(isX, oldVal) {
+    const pW = 44; // Ancho efectivo de colisión (pies)
+    const checkPoints = [
+        { x: player.x + (player.width - pW) / 2, y: player.y + player.height - 2 },
+        { x: player.x + (player.width + pW) / 2, y: player.y + player.height - 2 }
+    ];
+
+    let collided = false;
+    checkPoints.forEach(pt => {
+        const tx = Math.floor(pt.x / 64);
+        const ty = Math.floor(pt.y / 64);
+
+        if (tx >= 0 && tx < mapSize && ty >= 0 && ty < mapSize) {
+            const tile = mapData[ty][tx];
+            const isDockArea = islandFeatures.dock && tx === islandFeatures.dock.x && ty === islandFeatures.dock.y;
+            const isPlaneDock = tx >= planeX - 1 && tx <= planeX + 1 && ty === planeY;
+            
+            let walkable = false;
+            const inside = currentIsland.endsWith('_inside');
+            
+            if (inside) {
+                walkable = tile === 'woodFloor';
+            } else {
+                walkable = tile === 'grass' || tile === 'sand' || tile.startsWith('grass-sand') || 
+                           tile.startsWith('brik') || isDockArea || isPlaneDock;
+            }
+
+            if (!walkable) collided = true;
+        } else {
+            const inside = currentIsland.endsWith('_inside');
+            if (!inside) collided = true;
+        }
+    });
+
+    if (collided) {
+        if (isX) {
+            player.x = oldVal;
+            player.vx = 0;
+        } else {
+            player.y = oldVal;
+            player.vy = 0;
+        }
     }
 }
 
