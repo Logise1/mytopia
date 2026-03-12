@@ -562,14 +562,10 @@ function drawHUD() {
                 let pSize = 34; // 34x34 pixeles por defecto
                 
                 if (faker && faker.active) {
-                    const fx = player.x - faker.x;
-                    const fy = player.y - faker.y;
-                    const dist = Math.hypot(fx, fy);
-                    // Rango de visión del faker aún más pequeño (antes 400, ahora 250)
-                    const minSize = 8;
+                    // Rango de visión del faker y su fuerza determinan el tamaño
+                    const minSize = 6;
                     const maxSizeRange = 34 - minSize;
-                    const distRatio = Math.min(1, Math.max(0, dist / 250));
-                    pSize = minSize + (maxSizeRange * distRatio);
+                    pSize = minSize + (maxSizeRange * (1 - faker.strength));
                 }
                 
                 const cx = rX + (rW - pSize) / 2 + px;
@@ -646,8 +642,13 @@ function drawHUD() {
     let scale = 1;
     if (isNight) {
         // Latido rítmico solo de noche (rápido y notable)
-        const beat = performance.now() * 0.005;
-        scale = 1 + Math.max(0, Math.sin(beat)) * 0.15 + Math.max(0, Math.sin(beat + 0.3)) * 0.1;
+        // Se acelera proporcionalmente a la fuerza del Faker
+        const fakerBoost = (faker && faker.active) ? faker.strength : 0;
+        const beatSpeed = 0.005 + (fakerBoost * 0.01);
+        const beatAmplitude = 0.15 + (fakerBoost * 0.2);
+        
+        const beat = performance.now() * beatSpeed;
+        scale = 1 + Math.max(0, Math.sin(beat)) * beatAmplitude + Math.max(0, Math.sin(beat + 0.3)) * (beatAmplitude * 0.6);
     }
 
     ctx.scale(scale, scale);
@@ -1039,25 +1040,35 @@ function drawFurnitureSingle(f) {
 function applyChromaticAberration() {
     if (!faker.active || faker.spawnState === 'hidden') {
         canvas.style.filter = 'none';
+        canvas.style.transform = 'none';
         return;
     }
 
-    const dist = Math.hypot(player.x - faker.x, player.y - faker.y);
-    const maxDist = 800;
+    const intensity = faker.strength || 0;
     
-    if (dist < maxDist) {
-        // Cuanto más cerca, más fuerte el efecto
-        const intensity = (1 - dist / maxDist);
-        const shift = intensity * 15; // Desplazamiento máximo de 15px
-        
-        // Simulación de aberración usando sombras de colores desplazadas (ya que no hay shader)
-        // O mejor, usando filtros de drop-shadow múltiples que emulan los canales R y B
+    if (intensity > 0) {
+        // Cuanto más cerca, más fuerte y caótico el efecto
+        const shift = intensity * 25; // Separación de canales aumentada
+
+        // Pequeño "temblor" tipo glitch
+        const jitterX = (Math.random() - 0.5) * intensity * 20;
+        const jitterY = (Math.random() - 0.5) * intensity * 15;
+
+        // Ligero cambio de escala para reforzar el glitch
+        const scaleJitter = 1 + (Math.random() - 0.5) * intensity * 0.1;
+
+        canvas.style.transform = `translate(${jitterX}px, ${jitterY}px) scale(${scaleJitter})`;
+
+        // Efecto de aberración cromática: canales R y C desplazados + más contraste/saturación
         canvas.style.filter = `
-            drop-shadow(${shift}px 0px 0px rgba(255,0,0,${intensity * 0.5})) 
-            drop-shadow(${-shift}px 0px 0px rgba(0,255,255,${intensity * 0.5}))
-            contrast(${100 + intensity * 50}%)
+            drop-shadow(${shift}px 0px 0px rgba(255,0,0,${intensity * 0.8}))
+            drop-shadow(${-shift}px 0px 0px rgba(0,255,255,${intensity * 0.8}))
+            saturate(${120 + intensity * 150}%)
+            contrast(${110 + intensity * 80}%)
+            brightness(${100 - intensity * 20}%)
         `;
     } else {
         canvas.style.filter = 'none';
+        canvas.style.transform = 'none';
     }
 }

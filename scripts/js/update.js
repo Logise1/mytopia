@@ -383,6 +383,18 @@ function update(dt) {
             const dist = Math.hypot(dx, dy);
 
             if (dist > 0) {
+                // Rango de visión: si se aleja demasiado, se pierde
+                if (dist > faker.visionRange) {
+                    faker.active = false;
+                    faker.spawnState = 'hidden';
+                    faker.spawnWait = 10 + Math.random() * 10; // Tarda más en volver si se "pierde"
+                    return;
+                }
+
+                // Cálculo de fuerza (0 a 1)
+                faker.strength = 1 - (dist / faker.visionRange);
+                faker.strength = Math.max(0, Math.min(1, faker.strength));
+
                 let fvx = (dx / dist) * faker.speed;
                 let fvy = (dy / dist) * faker.speed;
                 faker.vx += fvx * dt;

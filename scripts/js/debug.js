@@ -64,5 +64,14 @@ function drawDebugInfo() {
     ctx.fillText(`Cam X: ${camera.x.toFixed(0)} Y: ${camera.y.toFixed(0)}`, 10, canvas.height - 20);
     ctx.fillText(`Pos X: ${player.x.toFixed(0)} Y: ${player.y.toFixed(0)}`, 10, canvas.height - 40);
     ctx.fillText(`Vel X: ${player.vx.toFixed(0)} Y: ${player.vy.toFixed(0)}`, 10, canvas.height - 60);
+
+    if (faker && faker.active) {
+        const dist = Math.hypot(player.x - faker.x, player.y - faker.y);
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+        ctx.fillText(`FAKER: ACTIVE | Dist: ${dist.toFixed(0)} | Strength: ${(faker.strength * 100).toFixed(0)}%`, 10, canvas.height - 80);
+    } else {
+        ctx.fillStyle = 'rgba(100, 100, 100, 0.7)';
+        ctx.fillText(`FAKER: INACTIVE | SpawnWait: ${faker.spawnWait.toFixed(1)}s`, 10, canvas.height - 80);
+    }
 }
 

@@ -124,7 +124,9 @@ const faker = {
         enter2Processed: null,
         enter3Processed: null
     },
-    spawnWait: 0 // Timer para esperar antes de aparecer
+    spawnWait: 0, // Timer para esperar antes de aparecer
+    visionRange: 350,
+    strength: 0
 };
 
 const PIXEL_SCALE = 2; // Factor global para que todos los pixeles tengan el mismo tamaño real en pantalla

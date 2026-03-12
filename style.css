@@ -554,9 +554,9 @@ canvas {
 }
 
 #inventory-hud img {
-    width: 128px; /* Mucho más grande */
+    width: 256px; /* Casi el doble del tamaño original */
     height: auto;
-    max-height: 128px;
+    max-height: 256px;
     image-rendering: pixelated;
     object-fit: contain;
 }
