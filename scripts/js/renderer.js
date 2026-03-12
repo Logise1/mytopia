@@ -158,8 +158,8 @@ function drawPlayerShadows() {
         entities.push({
             ...p, isLocal: false,
             screenX: p.x - camera.x, screenY: p.y - camera.y,
-            width: player.width, height: player.height,
-            direction: p.direction || player.direction,
+            width: 64, height: 64,
+            direction: p.direction || 'forward',
             u_uid: uid
         });
     }
@@ -326,22 +326,30 @@ function drawPlayer() {
     const drawY = screenY + (player.height - drawH) + jumpOffset;
 
     // Death animation logic (rotated + reddish)
-    if (gameState === 'dead') {
+    if (gameState === 'dead' && frameData && (frameData.processed || frameData.original)) {
         ctx.save();
         ctx.translate(drawX + drawW / 2, drawY + drawH / 2);
         ctx.rotate(Math.PI / 2); // Rotate 90 degrees
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(frameData.processed, -drawW / 2, -drawH / 2, drawW, drawH);
+        ctx.drawImage(frameData.processed || frameData.original, -drawW / 2, -drawH / 2, drawW, drawH);
         
-        // Add a red tint over the player
         ctx.globalCompositeOperation = 'source-atop';
         ctx.fillStyle = 'rgba(255, 0, 0, 0.4)';
         ctx.fillRect(-drawW / 2, -drawH / 2, drawW, drawH);
-        
         ctx.restore();
-    } else {
+    } else if (frameData && (frameData.processed || frameData.original)) {
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(frameData.processed, drawX, drawY, drawW, drawH);
+        ctx.drawImage(frameData.processed || frameData.original, drawX, drawY, drawW, drawH);
+    } else {
+        // Fallback robusto: círculo con el color de piel
+        ctx.fillStyle = skinColor || '#ffdbac';
+        ctx.beginPath();
+        ctx.arc(screenX + 32, screenY + 32, 22, 0, Math.PI * 2);
+        ctx.fill();
+        // Ojos básicos para no ser invisible
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(screenX + 22, screenY + 25, 4, 4);
+        ctx.fillRect(screenX + 38, screenY + 25, 4, 4);
     }
 
     // Visualizar Hitbox del Jugador si está en modo Debug
@@ -637,17 +645,21 @@ function drawSingleOtherPlayer(uid) {
 
     const drawW = baseWidth * scaleX;
     const drawH = baseHeight * scaleY;
-    const drawX = screenX + (player.width - drawW) / 2;
-    const drawY = screenY + (player.height - drawH) + jumpOffset;
+    const drawX = screenX + (64 - drawW) / 2;
+    const drawY = screenY + (64 - drawH) + jumpOffset;
 
-    if (frameData && frameData.processed) {
+    if (frameData && (frameData.processed || frameData.original)) {
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(frameData.processed, drawX, drawY, drawW, drawH);
+        ctx.drawImage(frameData.processed || frameData.original, drawX, drawY, drawW, drawH);
     } else {
+        // Fallback robusto para otros jugadores
         ctx.fillStyle = p.skin || '#ffdbac';
         ctx.beginPath();
-        ctx.arc(screenX + player.width / 2, screenY + player.height / 2, 20, 0, Math.PI * 2);
+        ctx.arc(screenX + 32, screenY + 32, 22, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(screenX + 22, screenY + 25, 4, 4);
+        ctx.fillRect(screenX + 38, screenY + 25, 4, 4);
     }
 }
 
@@ -663,35 +675,45 @@ function drawFaker() {
     let baseWidth = faker.width;
     let baseHeight = faker.height;
 
+    const animSet = getFakerSkinAnimations(skinColor);
+
     if (faker.spawnState === 'enter1') {
-        img = faker.enterAssets.enter1;
+        img = faker.enterAssets.enter1Processed || faker.enterAssets.enter1;
     } else if (faker.spawnState === 'enter2') {
-        img = faker.enterAssets.enter2;
+        img = faker.enterAssets.enter2Processed || faker.enterAssets.enter2;
         // Salto de 0.5s: usar onda seno para el arco del salto
         const jumpProgress = (0.5 - faker.spawnTimer) / 0.5;
         jumpY = -Math.sin(jumpProgress * Math.PI) * 40;
     } else if (faker.spawnState === 'enter3') {
-        img = faker.enterAssets.enter3;
+        img = faker.enterAssets.enter3Processed || faker.enterAssets.enter3;
     } else {
-        const animSet = getFakerSkinAnimations(skinColor);
         const anim = animSet[faker.direction];
         if (!anim) return;
         const frameData = anim[Math.floor(faker.frame)];
         if (frameData) img = frameData.processed || frameData.original;
     }
 
-    if (img && img.complete) {
+    const isCanvas = img instanceof HTMLCanvasElement;
+    if (img && (isCanvas || (img.complete && img.naturalWidth > 0))) {
         ctx.save();
-        ctx.globalAlpha = 0.8;
+        ctx.globalAlpha = 1.0; 
         ctx.imageSmoothingEnabled = false;
 
-        // Mantener escala de píxel constante (PIXEL_SCALE)
-        // Si el asset es p.ej. 32x32, con PIXEL_SCALE=2 se dibuja a 64x64
-        const drawW = img.naturalWidth * PIXEL_SCALE;
-        const drawH = img.naturalHeight * PIXEL_SCALE;
+        // Tamaño idéntico al del jugador
+        const drawW = 64; 
+        const drawH = 64;
         
         ctx.drawImage(img, screenX + (faker.width - drawW) / 2, screenY + (faker.height - drawH) + jumpY, drawW, drawH);
         ctx.restore();
+    } else {
+        // Fallback para el Faker si no carga la imagen
+        ctx.fillStyle = '#ff0000';
+        ctx.beginPath();
+        ctx.arc(screenX + 32, screenY + 32 + jumpY, 25, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(screenX + 22, screenY + 25 + jumpY, 6, 6);
+        ctx.fillRect(screenX + 36, screenY + 25 + jumpY, 6, 6);
     }
 }      
 function applyDayNightEffect() {
@@ -772,14 +794,13 @@ function drawHouse(drawX, drawY) {
 
 function drawDock(drawX, drawY) {
     if (dockAsset.complete && dockAsset.naturalWidth > 0) {
+        // Solo un dock agrandado a PIXEL_SCALE
         const dockW = dockAsset.naturalWidth * PIXEL_SCALE;
         const dockH = dockAsset.naturalHeight * PIXEL_SCALE;
-        // Tiled 2 times downwards
         ctx.drawImage(dockAsset, drawX, drawY, dockW, dockH);
-        ctx.drawImage(dockAsset, drawX, drawY + dockH, dockW, dockH);
     } else {
-        ctx.fillStyle = '#5d3350';
-        ctx.fillRect(drawX, drawY, 64, 120);
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(drawX, drawY, 64, 64);
     }
 }
 

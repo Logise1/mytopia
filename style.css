@@ -367,3 +367,86 @@ canvas {
     margin-top: 0;
     height: 15px;
 }
+
+#social-menu {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: 200px;
+    background: rgba(93, 51, 80, 0.85);
+    border: 2px solid #ffb58b;
+    border-radius: 8px;
+    color: white;
+    padding: 10px;
+    z-index: 400;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 300px;
+}
+
+#social-header {
+    font-family: "Jacquard 12", serif;
+    font-size: 20px;
+    border-bottom: 1px solid #ffb58b;
+    padding-bottom: 5px;
+    text-align: center;
+}
+
+#friends-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.friend-item {
+    background: rgba(255, 181, 139, 0.2);
+    padding: 5px;
+    border-radius: 4px;
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+}
+
+.friend-name { font-weight: bold; color: #ffb58b; }
+.friend-status { font-size: 11px; opacity: 0.9; }
+.friend-island { font-size: 11px; color: #87CEEB; }
+
+.remove-friend-btn {
+    align-self: flex-end;
+    background: #ad4054;
+    color: white;
+    border: none;
+    border-radius: 2px;
+    font-size: 10px;
+    cursor: pointer;
+    padding: 2px 5px;
+    margin-top: 2px;
+}
+
+#social-search {
+    display: flex;
+    gap: 5px;
+}
+
+#friend-search-input {
+    flex-grow: 1;
+    background: #ffb58b;
+    border: none;
+    border-radius: 4px;
+    padding: 5px;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+#add-friend-btn {
+    background: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0 8px;
+    cursor: pointer;
+    font-weight: bold;
+}

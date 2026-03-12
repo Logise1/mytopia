@@ -119,13 +119,22 @@ async function loadAllAnimations() {
     loadEntityAnim(player, 'sprites/characters');
     loadEntityAnim(faker, 'sprites/monsters/faker');
 
-    // Cargar assets de entrada del Faker
-    faker.enterAssets.enter1.src = 'sprites/monsters/faker/enter.png';
-    loadPromises.push(new Promise(res => faker.enterAssets.enter1.onload = res));
-    faker.enterAssets.enter2.src = 'sprites/monsters/faker/enter2 (jump).png';
-    loadPromises.push(new Promise(res => faker.enterAssets.enter2.onload = res));
-    faker.enterAssets.enter3.src = 'sprites/monsters/faker/enter3.png';
-    loadPromises.push(new Promise(res => faker.enterAssets.enter3.onload = res));
+    // Cargar assets de entrada del Faker (Asegurando rutas y nombres claros)
+    const loadFakerEnter = (imgObj, primary, fallback) => {
+        return new Promise(res => {
+            imgObj.src = primary;
+            imgObj.onload = res;
+            imgObj.onerror = () => {
+                imgObj.src = fallback;
+                imgObj.onload = res;
+                imgObj.onerror = res; // Si falla el fallback también seguimos
+            };
+        });
+    };
+
+    loadPromises.push(loadFakerEnter(faker.enterAssets.enter1, 'sprites/monsters/faker/enter.png', 'sprites/textures/enter.png'));
+    loadPromises.push(loadFakerEnter(faker.enterAssets.enter2, 'sprites/monsters/faker/enter2.png', 'sprites/textures/enter2.png'));
+    loadPromises.push(loadFakerEnter(faker.enterAssets.enter3, 'sprites/monsters/faker/enter3.png', 'sprites/textures/enter3.png'));
 
     await Promise.all(loadPromises);
     getSkinAnimations(skinColor);
@@ -143,7 +152,38 @@ const fakerSkinCaches = {};
 
 function getFakerSkinAnimations(color) {
     if (fakerSkinCaches[color]) return fakerSkinCaches[color];
+    
+    // Tintar animaciones de caminata
     const newAnimSet = tintAnimations(faker.animations, color);
+    
+    // Tintar también los assets de entrada para que coincidan con la piel
+    const tintSingle = (img) => {
+        if (!img || !img.complete || img.naturalWidth === 0) return img;
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = img.naturalWidth;
+        tempCanvas.height = img.naturalHeight;
+        tempCtx.drawImage(img, 0, 0);
+        const target = hexToRgb(color);
+        const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+            if (a > 0 && g > r && g > b) {
+                const factor = g / 255;
+                data[i] = Math.floor(target.r * factor);
+                data[i + 1] = Math.floor(target.g * factor);
+                data[i + 2] = Math.floor(target.b * factor);
+            }
+        }
+        tempCtx.putImageData(imageData, 0, 0);
+        return tempCanvas;
+    };
+
+    faker.enterAssets.enter1Processed = tintSingle(faker.enterAssets.enter1);
+    faker.enterAssets.enter2Processed = tintSingle(faker.enterAssets.enter2);
+    faker.enterAssets.enter3Processed = tintSingle(faker.enterAssets.enter3);
+
     fakerSkinCaches[color] = newAnimSet;
     return newAnimSet;
 }
@@ -155,7 +195,7 @@ function tintAnimations(sourceAnimations, color) {
     const newAnimSet = { up: [], down: [], left: [], right: [], forward: [] };
 
     for (const dir in sourceAnimations) {
-        if (!sourceAnimations[dir]) continue;
+        if (!sourceAnimations[dir] || sourceAnimations[dir].length === 0) continue;
         sourceAnimations[dir].forEach((frameData, idx) => {
             if (!frameData || !frameData.original) {
                 newAnimSet[dir][idx] = { original: null, processed: null };
@@ -163,10 +203,15 @@ function tintAnimations(sourceAnimations, color) {
             }
 
             const img = frameData.original;
+            if (!img.complete || img.naturalWidth === 0) {
+                newAnimSet[dir][idx] = { original: img, processed: null };
+                return;
+            }
+
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
-            tempCanvas.width = img.width;
-            tempCanvas.height = img.height;
+            tempCanvas.width = img.naturalWidth;
+            tempCanvas.height = img.naturalHeight;
 
             tempCtx.drawImage(img, 0, 0);
             const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
@@ -189,6 +234,18 @@ function tintAnimations(sourceAnimations, color) {
             };
         });
     }
+
+    // Asegurar que si falta una dirección, al menos tenga el primer frame de 'forward'
+    const validDirs = ['up', 'down', 'left', 'right', 'forward'];
+    const fallbackDir = sourceAnimations['forward'] ? 'forward' : (sourceAnimations['up'] ? 'up' : null);
+    if (fallbackDir) {
+        validDirs.forEach(d => {
+            if (newAnimSet[d].length === 0) {
+                newAnimSet[d] = newAnimSet[fallbackDir];
+            }
+        });
+    }
+
     return newAnimSet;
 }
 

@@ -28,7 +28,10 @@ async function initFirebase() {
                 const docSnap = await fb.getDoc(fb.doc(fs, "users", user.uid));
                 if (docSnap.exists() && docSnap.data().skin) {
                     skinColor = docSnap.data().skin;
-                    if (tileAssets && tileAssets.isLoaded) getSkinAnimations(skinColor);
+                    if (tileAssets && tileAssets.isLoaded) {
+                        getSkinAnimations(skinColor);
+                        getFakerSkinAnimations(skinColor);
+                    }
                     skinLoaded = true;
                 }
             } catch (e) { }
@@ -45,6 +48,8 @@ async function initFirebase() {
             generateIsland(currentIsland);
 
             startSync();
+            initSocial();
+            loadFriends(user.uid);
         } else {
             multiplayer.userId = null;
             multiplayer.username = "";
@@ -183,7 +188,9 @@ function sendMovement() {
         direction: player.direction,
         isMoving: player.isMoving,
         username: multiplayer.username,
-        skin: skinColor
+        skin: skinColor,
+        island: currentIsland,
+        status: multiplayer.status
     });
 }
 

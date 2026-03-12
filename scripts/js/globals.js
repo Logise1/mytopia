@@ -119,8 +119,12 @@ const faker = {
     enterAssets: {
         enter1: new Image(),
         enter2: new Image(),
-        enter3: new Image()
-    }
+        enter3: new Image(),
+        enter1Processed: null,
+        enter2Processed: null,
+        enter3Processed: null
+    },
+    spawnWait: 0 // Timer para esperar antes de aparecer
 };
 
 const PIXEL_SCALE = 2; // Factor global para que todos los pixeles tengan el mismo tamaño real en pantalla
@@ -135,8 +139,6 @@ const camera = {
 
 const directions = ['forward', 'up', 'left', 'right'];
 const totalFrames = 6;
-
-// Teclas
 const keys = {};
 
 // Assets Suelo
@@ -222,7 +224,9 @@ const multiplayer = {
     userId: null,
     username: "",
     lastSend: 0,
-    moveBuffer: [] // Acumular movimientos para enviar
+    status: "Explorando",
+    friends: [], // Lista de UIDs de amigos
+    allUsers: {} // Cache de todos los usuarios para añadir amigos
 };
 
 const skinCaches = {}; // Almacenar el spritesheet procesado para cada color de piel visto

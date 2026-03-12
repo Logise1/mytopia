@@ -63,6 +63,13 @@ function update(dt) {
     let ay = 0;
     let inputMoving = false;
 
+    // Actualizar estado social dinámico
+    if (isTraveling) multiplayer.status = "Viajando en avión...";
+    else if (currentIsland.endsWith('_inside')) multiplayer.status = "En casa";
+    else if (faker.active && faker.spawnState === 'chasing') multiplayer.status = "¡Huyendo del Faker!";
+    else if (player.isMoving) multiplayer.status = "Caminando por " + currentIsland;
+    else multiplayer.status = "Descansando en " + currentIsland;
+
     // Aplicar aceleración basada en inputs
     if (keys['KeyW'] || keys['ArrowUp']) {
         ay = -player.speed;
@@ -291,16 +298,26 @@ function update(dt) {
     const isNightForFaker = (worldTime >= 18 || worldTime < 6);
     if (!isInside && isNightForFaker && gameState === 'playing') {
         if (!faker.active) {
-            faker.active = true;
-            faker.spawnState = 'enter1';
-            faker.spawnTimer = 0.5;
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 1000 + Math.random() * 500;
-            faker.x = player.x + Math.cos(angle) * distance;
-            faker.y = player.y + Math.sin(angle) * distance;
+            // Inicializar tiempo de espera aleatorio si no se ha hecho
+            if (faker.spawnWait <= 0) {
+                faker.spawnWait = 5 + Math.random() * 5; // 5-10 segundos
+            }
+            
+            faker.spawnWait -= dt;
+            
+            if (faker.spawnWait <= 0) {
+                faker.active = true;
+                faker.spawnState = 'enter1';
+                faker.spawnTimer = 0.5;
+                // Spawning specifically ABOVE the player as requested
+                faker.x = player.x;
+                faker.y = player.y - 200; // 200 pixels arriba, bien visible
+                faker.vx = 0;
+                faker.vy = 0;
+            }
         }
 
-        if (faker.spawnState !== 'chasing') {
+        if (faker.active && faker.spawnState !== 'chasing') {
             faker.spawnTimer -= dt;
             if (faker.spawnTimer <= 0) {
                 if (faker.spawnState === 'enter1') {
@@ -353,8 +370,8 @@ function update(dt) {
                 faker.frame = 0;
             }
 
-            if (dist < 25) {
-                stats.health -= 15 * dt;
+            if (dist < 40) { // Mayor rango para compensar la velocidad
+                stats.health -= 25 * dt; // Daño más letal
                 if (stats.health <= 0) {
                     stats.health = 0;
                     gameState = 'dead';
@@ -369,6 +386,7 @@ function update(dt) {
     } else {
         faker.active = false;
         faker.spawnState = 'hidden';
+        faker.spawnWait = 0; // Reset para la siguiente noche
     }
 }
 
