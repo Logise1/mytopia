@@ -7,7 +7,7 @@ function generateIsland(islandId) {
     islandFeatures.dock = null;
     if (typeof selectedFurniture !== 'undefined') selectedFurniture = null;
 
-    const isInside = islandId.endsWith('_inside');
+    const isInside = islandId.includes('_inside');
     mapSize = islandId === 'central' ? 140 : (isInside ? 30 : 100);
     
     seed = [...islandId].reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -124,7 +124,8 @@ function generateIsland(islandId) {
 }
 
 function enterHouse(baseIslandId) {
-    currentIsland = baseIslandId + '_inside';
+    // Añadimos el userId para que la casa sea PRIVADA
+    currentIsland = baseIslandId + '_inside_' + (multiplayer.userId || 'anon');
     generateIsland(currentIsland);
     player.x = (mapSize / 2) * 64;
     player.y = (mapSize / 2 + 4) * 64;
@@ -134,7 +135,8 @@ function enterHouse(baseIslandId) {
 }
 
 function exitHouse() {
-    currentIsland = currentIsland.replace('_inside', '');
+    // Volver a la isla base quitando el ID de la casa
+    currentIsland = currentIsland.split('_inside_')[0];
     generateIsland(currentIsland);
     if (islandFeatures.house) {
         player.x = islandFeatures.house.x * 64 + 64;

@@ -932,7 +932,7 @@ function drawAirplane(drawX, drawY) {
         } else {
             return; // En el aire central no se dibuja en el mapa
         }
-    } else if (gameState === 'playing' && !currentIsland.endsWith('_inside')) {
+    } else if (gameState === 'playing' && !currentIsland.includes('_inside')) {
         // Efecto de flotar cuando está en el muelle
         offsetY = Math.sin(Date.now() * 0.003) * 6;
     }

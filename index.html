@@ -55,13 +55,42 @@
             <div class="color-options">
                 <button class="house-color-btn" style="background-color: #ff0000;" data-color="rgba(255,0,0,0.3)"></button>
                 <button class="house-color-btn" style="background-color: #00ff00;" data-color="rgba(0,255,0,0.3)"></button>
-                <button class="house-color-btn" style="background-color: #0000ff;" data-color="rgba(0,0,255,0.3)"></button>
+                <button class="house-color-btn" style="background-color: #0000ff;" data-color="rgba(0,255,0,0.3)"></button>
                 <button class="house-color-btn" style="background-color: #ffff00;" data-color="rgba(255,255,0,0.3)"></button>
                 <button class="house-color-btn" style="background-color: #ff00ff;" data-color="rgba(255,0,255,0.3)"></button>
                 <button class="house-color-btn" style="background-color: #00ffff;" data-color="rgba(0,255,255,0.3)"></button>
                 <button class="house-color-btn" style="background-color: #ffffff;" data-color="none"></button>
             </div>
             <button id="close-house-menu">¡Hecho!</button>
+        </div>
+
+        <!-- Menú de Edición de Muebles -->
+        <div id="furniture-editor" class="hidden">
+            <div class="editor-header">
+                <h3>Decorador de Interiores</h3>
+                <button id="close-furniture-btn">X</button>
+            </div>
+            <div class="furniture-catalog">
+                <div class="furniture-item" data-type="sofa">
+                    <div class="f-preview sofa"></div>
+                    <span>Sofá (100 🪙)</span>
+                </div>
+                <div class="furniture-item" data-type="table">
+                    <div class="f-preview table"></div>
+                    <span>Mesa (50 🪙)</span>
+                </div>
+                <div class="furniture-item" data-type="bed">
+                    <div class="f-preview bed"></div>
+                    <span>Cama (150 🪙)</span>
+                </div>
+                <div class="furniture-item" data-type="rug">
+                    <div class="f-preview rug"></div>
+                    <span>Alfombra (30 🪙)</span>
+                </div>
+            </div>
+            <div class="editor-footer">
+                <p>Usa ENTER/X para colocar | Arrastra para mover</p>
+            </div>
         </div>
 
         <!-- Menú Social / Amigos -->

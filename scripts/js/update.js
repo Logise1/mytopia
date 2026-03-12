@@ -1,5 +1,5 @@
 function update(dt) {
-    const isInside = currentIsland.endsWith('_inside');
+    const isInside = currentIsland.includes('_inside');
 
     // --- LÓGICA DE VIAJE ---
     if (gameState === 'traveling') {
@@ -77,7 +77,7 @@ function update(dt) {
 
     // Actualizar estado social dinámico
     if (isTraveling) multiplayer.status = "Viajando en avión...";
-    else if (currentIsland.endsWith('_inside')) multiplayer.status = "En casa";
+    else if (currentIsland.includes('_inside')) multiplayer.status = "En casa";
     else if (faker.active && faker.spawnState === 'chasing') multiplayer.status = "¡Huyendo del Faker!";
     else if (player.isMoving) multiplayer.status = "Caminando por " + currentIsland;
     else multiplayer.status = "Descansando en " + currentIsland;
@@ -453,7 +453,7 @@ function resolveMapCollisions(isX, oldVal) {
             const isPlaneDock = tx >= planeX - 1 && tx <= planeX + 1 && ty === planeY;
             
             let walkable = false;
-            const inside = currentIsland.endsWith('_inside');
+            const inside = currentIsland.includes('_inside');
             
             if (inside) {
                 walkable = tile === 'woodFloor';
@@ -464,7 +464,7 @@ function resolveMapCollisions(isX, oldVal) {
 
             if (!walkable) collided = true;
         } else {
-            const inside = currentIsland.endsWith('_inside');
+            const inside = currentIsland.includes('_inside');
             if (!inside) collided = true;
         }
     });

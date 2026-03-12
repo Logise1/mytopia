@@ -131,22 +131,22 @@ function gameLoop(currentTime) {
     }
 
     // 4. Avión / Puerta
-    const isInside = currentIsland.endsWith('_inside');
+    const isInside = currentIsland.includes('_inside');
     if (!isInside) {
         const airplaneY = planeY * 64 + 64;
         renderList.push({ y: airplaneY, draw: () => drawAirplane(planeX * 64 - camera.x, planeY * 64 - camera.y) });
         
-        // Cartel al lado del avión/muelle
+        // Cartel al lado del avión/muelle - SUBIDO MÁS A LA ARENA
         const signX = (planeX - 1) * 64;
-        const signY = planeY * 64;
+        const signY = (planeY - 5) * 64; // Subido 5 tiles
         renderList.push({ y: signY + 64, draw: () => drawSign(signX - camera.x, signY - camera.y) });
 
         // Lógica de proximidad para el cartel
         const distSign = Math.hypot(player.x - (signX + 32), player.y - (signY + 32));
-        if (distSign < 80) {
-            let islandName = "Main Island";
+        if (distSign < 100) {
+            let islandName = "Mytopia Main Island";
             if (currentIsland === 'home') islandName = (multiplayer.username || "Tu") + "'s Island";
-            else if (currentIsland !== 'central') {
+            else if (!currentIsland.includes('_inside')) {
                 islandName = currentIsland.charAt(0).toUpperCase() + currentIsland.slice(1) + "'s Island";
             }
             currentActionPrompt = islandName;
@@ -222,7 +222,7 @@ window.addEventListener('keydown', e => {
 
 // --- LÓGICA DE EDITOR DE MUEBLES ---
 window.addEventListener('keydown', e => {
-    if (e.code === 'KeyE' && currentIsland.endsWith('_inside')) {
+    if (e.code === 'KeyE' && currentIsland.includes('_inside')) {
         const editor = document.getElementById('furniture-editor');
         editor.classList.toggle('hidden');
     }
@@ -259,7 +259,7 @@ document.getElementById('close-furniture-btn').onclick = () => {
 
 // Arrastrar muebles
 canvas.addEventListener('mousedown', (e) => {
-    if (!currentIsland.endsWith('_inside') || document.getElementById('furniture-editor').classList.contains('hidden')) return;
+    if (!currentIsland.includes('_inside') || document.getElementById('furniture-editor').classList.contains('hidden')) return;
     
     const worldX = mouseX + camera.x;
     const worldY = mouseY + camera.y;

@@ -119,11 +119,16 @@ function startSync() {
         const data = snapshot.val();
         if (!data) return;
 
+        // Limpiar jugadores que ya no están en la base de datos
+        for (let uid in multiplayer.players) {
+            if (!data[uid]) delete multiplayer.players[uid];
+        }
+
         for (let uid in data) {
             if (uid === multiplayer.userId) continue;
 
             const pData = data[uid];
-            // Solo ver a los que están en la misma isla
+            // Solo ver a los que están EXACTAMENTE en la misma instancia de isla
             if (pData.island !== currentIsland) {
                 if (multiplayer.players[uid]) delete multiplayer.players[uid];
                 continue;
