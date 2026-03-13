@@ -80,6 +80,24 @@ canvas {
     margin: 10px 0;
 }
 
+.settings-section {
+    width: 100%;
+    margin: 6px 0;
+    text-align: left;
+}
+
+.settings-section p {
+    font-size: 13px;
+    margin-bottom: 4px;
+    font-weight: bold;
+}
+
+.settings-section input[type="range"] {
+    width: 100%;
+    accent-color: #5d3350;
+    cursor: pointer;
+}
+
 .color-btn, .house-color-btn, .f-color-btn, .skin-color-btn {
     width: 32px;
     height: 32px;

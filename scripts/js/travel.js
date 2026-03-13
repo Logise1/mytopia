@@ -74,7 +74,7 @@ function startTravel(targetId, ownerUid) {
                 audioAssets.dayMusic.volume -= 0.05;
             } else {
                 audioAssets.dayMusic.pause();
-                audioAssets.dayMusic.volume = 1; // restaurar para la proxima vez
+                audioAssets.dayMusic.volume = musicVolume; // restaurar al valor del slider
                 clearInterval(fadeInterval);
             }
         }, 100);

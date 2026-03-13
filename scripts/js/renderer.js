@@ -1,4 +1,5 @@
 function drawTiles() {
+    ctx.imageSmoothingEnabled = false; // Asegurar píxeles nítidos en cada frame
     const tileSize = 64;
 
     const startX = Math.floor(camera.x / tileSize);
@@ -12,8 +13,8 @@ function drawTiles() {
             const my = ((ty % mapSize) + mapSize) % mapSize;
 
             let tileType = mapData[my][mx];
-            const drawX = tx * tileSize - camera.x;
-            const drawY = ty * tileSize - camera.y;
+            const drawX = Math.floor(tx * tileSize - camera.x);
+            const drawY = Math.floor(ty * tileSize - camera.y);
 
             if (tileAssets.isLoaded) {
                 let rotation = 0;
@@ -304,7 +305,7 @@ function drawSingleTree(tree, tileSize) {
     if (drawX > -tileSize * 4 && drawX < canvas.width + tileSize * 4 && drawY > -tileSize * 6 && drawY < canvas.height + tileSize * 4) {
         const treeW = treeAsset.naturalWidth * PIXEL_SCALE;
         const treeH = treeAsset.naturalHeight * PIXEL_SCALE;
-        ctx.drawImage(treeAsset, drawX - (treeW - tileSize) / 2, drawY - (treeH - tileSize), treeW, treeH);
+        ctx.drawImage(treeAsset, Math.floor(drawX - (treeW - tileSize) / 2), Math.floor(drawY - (treeH - tileSize)), treeW, treeH);
     }
 }
 
@@ -315,7 +316,7 @@ function drawSinglePalmtree(tree, tileSize) {
     if (screenX < -512 || screenX > canvas.width + 512 || screenY < -512 || screenY > canvas.height + 512) return;
     const drawW = palmtreeAsset.naturalWidth * PIXEL_SCALE;
     const drawH = palmtreeAsset.naturalHeight * PIXEL_SCALE;
-    ctx.drawImage(palmtreeAsset, screenX - (drawW - tileSize)/2, screenY - (drawH - tileSize), drawW, drawH);
+    ctx.drawImage(palmtreeAsset, Math.floor(screenX - (drawW - tileSize) / 2), Math.floor(screenY - (drawH - tileSize)), drawW, drawH);
 }
 
 function drawPlayer() {
@@ -329,12 +330,16 @@ function drawPlayer() {
         const aspect = frameData.original.width / frameData.original.height;
         baseWidth = baseHeight * aspect;
     }
-    if (player.isMoving) {
+    if (player.emote && player.emote.active) {
+        // En emote no aplicamos rebote ni respiración para no deformar el pixel art
+        scaleX = 1; scaleY = 1; jumpOffset = 0;
+    } else if (player.isMoving) {
         const cycleProgress = (player.frame + (player.frameTimer / player.frameDuration)) / 6;
         const bounce = Math.abs(Math.sin(cycleProgress * Math.PI * 2));
         jumpOffset = -bounce * 10;
-        const s = (bounce - 0.5) * 0.1;
-        scaleY = 1 + s; scaleX = 1 - s;
+        // Mantenemos una ligera escala en movimiento si quieres, o la quitamos. 
+        // El usuario pide no aplastar, así que la reseteamos a 1.
+        scaleY = 1; scaleX = 1;
     } else {
         const breath = Math.sin((player.idleTime || 0) * 3);
         scaleY = 1 + breath * 0.02;
@@ -344,7 +349,37 @@ function drawPlayer() {
     const drawH = baseHeight * scaleY;
     const drawX = screenX + (player.width - drawW) / 2;
     const drawY = screenY + (player.height - drawH) + jumpOffset;
-    if (gameState === 'dead' && frameData && (frameData.processed || frameData.original)) {
+
+    if (player.emote && player.emote.active && player.emote.frames[player.emote.frame]) {
+        const eFrame = player.emote.frames[player.emote.frame];
+        
+        // El jugador se dibuja a 64px de alto. Para que el pixel-size sea el mismo,
+        // necesitamos saber a qué escala se está dibujando ese sprite de 64px.
+        const walkAnim = player.animations.forward[0];
+        const charOrigH = (walkAnim && walkAnim.original) ? walkAnim.original.height : 18;
+        // Esta es la escala real: de los píxeles originales a los 64px de pantalla
+        const currentScale = 64 / charOrigH;
+
+        // Aplicamos ESA MISMA escala a los frames del emote
+        const eW = eFrame.width * currentScale;
+        const eH = eFrame.height * currentScale;
+        
+        const drawEX = screenX + (player.width - eW) / 2;
+        let drawEY = screenY + (player.height - eH);
+        
+        // Secuencia de saltitos sincronizada (3 frames: 31-33)
+        const frameNum = player.emote.frame + 1;
+        if (frameNum === 31) {
+            drawEY -= 15;
+        } else if (frameNum === 32) {
+            drawEY -= 10;
+        } else if (frameNum === 33) {
+            drawEY -= 5;
+        }
+        
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(eFrame, drawEX, drawEY, eW, eH);
+    } else if (gameState === 'dead' && frameData && (frameData.processed || frameData.original)) {
         ctx.save();
         ctx.translate(drawX + drawW / 2, drawY + drawH / 2);
         ctx.rotate(Math.PI / 2);
@@ -464,6 +499,42 @@ function drawSingleOtherPlayer(uid) {
     const sx = p.x - camera.x, sy = p.y - camera.y;
     if (sx < -100 || sx > canvas.width + 100 || sy < -100 || sy > canvas.height + 100) return;
     ctx.save(); ctx.font = '20px "Tiny5", sans-serif'; ctx.textAlign = "center"; ctx.fillStyle = "white"; ctx.fillText(p.username || "", sx + 32, sy - 10); ctx.restore();
+    
+    // Si el otro jugador está haciendo un emote
+    if (p.emoteActive) {
+        const skinAnims = getSkinAnimations(p.skin || '#ffdbac');
+        // Obtener emote frames del cache de skins
+        const cached = skinCaches[p.skin || '#ffdbac'];
+        const emoteF = cached && cached.emotes && cached.emotes[1] ? cached.emotes[1] : null;
+        
+        // Sincronización absoluta con el audio que oímos de él
+        let frameIdx = p.emoteFrame || 0;
+        if (p.activeAudio && !p.activeAudio.paused) {
+            frameIdx = Math.floor(p.activeAudio.currentTime / 0.1);
+        }
+        
+        if (emoteF && emoteF[frameIdx]) {
+            const eFrame = emoteF[frameIdx];
+            const walkAnim = player.animations.forward[0];
+            const charOrigH = (walkAnim && walkAnim.original) ? walkAnim.original.height : 18;
+            const currentScale = 64 / charOrigH;
+            const eW = eFrame.width * currentScale;
+            const eH = eFrame.height * currentScale;
+            const drawEX = sx + (64 - eW) / 2;
+            let drawEY = sy + (64 - eH);
+            
+            // Saltitos sincronizados (3 frames: 31-33)
+            const frameNum = frameIdx + 1;
+            if (frameNum === 31) drawEY -= 15;
+            else if (frameNum === 32) drawEY -= 10;
+            else if (frameNum === 33) drawEY -= 5;
+            
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(eFrame, drawEX, drawEY, eW, eH);
+            return;
+        }
+    }
+    
     const anim = getSkinAnimations(p.skin || '#ffdbac')[p.direction];
     const frame = anim ? anim[Math.floor(p.frame || 0)] : null;
     if (frame && (frame.processed || frame.original)) {
@@ -473,11 +544,20 @@ function drawSingleOtherPlayer(uid) {
 
 function drawFaker() {
     if (!faker.active || faker.spawnState === 'hidden') return;
-    const sx = faker.x - camera.x, sy = faker.y - camera.y;
+    const sx = faker.x - camera.x;
+    let sy = faker.y - camera.y;
     if (sx < -200 || sx > canvas.width + 200 || sy < -200 || sy > canvas.height + 200) return;
     let img = null;
     if (faker.spawnState.startsWith('enter')) img = faker.enterAssets[faker.spawnState + 'Processed'] || faker.enterAssets[faker.spawnState];
     else { const anim = getFakerSkinAnimations(skinColor)[faker.direction]; if (anim) img = anim[Math.floor(faker.frame)].processed || anim[Math.floor(faker.frame)].original; }
+    
+    // Salto grande en la fase enter2 (0.5s)
+    if (faker.spawnState === 'enter2') {
+        const jumpProgress = faker.spawnTimer / 0.5; // 0 al inicio, 1 al final del timer
+        const jumpArc = Math.sin(jumpProgress * Math.PI); // parábola suave
+        sy -= jumpArc * 80; // Salto de 80px de alto
+    }
+    
     if (img) {
         ctx.imageSmoothingEnabled = false;
         const isCanvas = img instanceof HTMLCanvasElement;
@@ -496,9 +576,18 @@ function applyDayNightEffect() {
 
 function drawHouse(dx, dy) {
     if (houseAsset.complete) {
-        const tw = houseAsset.naturalWidth * 3.5, th = houseAsset.naturalHeight * 3.5;
-        ctx.drawImage(houseAsset, dx - (tw-128)/2, dy+80-th, tw, th);
-        if (houseColor !== 'none') { ctx.save(); ctx.globalCompositeOperation = 'source-atop'; ctx.fillStyle = houseColor; ctx.fillRect(dx-(tw-128)/2, dy+80-th, tw, th); ctx.restore(); }
+        ctx.imageSmoothingEnabled = false;
+        const tw = houseAsset.naturalWidth * 4, th = houseAsset.naturalHeight * 4;
+        const finalX = Math.floor(dx - (tw - 128) / 2);
+        const finalY = Math.floor(dy + 80 - th);
+        ctx.drawImage(houseAsset, finalX, finalY, tw, th);
+        if (houseColor !== 'none') {
+            ctx.save();
+            ctx.globalCompositeOperation = 'source-atop';
+            ctx.fillStyle = houseColor;
+            ctx.fillRect(finalX, finalY, tw, th);
+            ctx.restore();
+        }
     }
 }
 
@@ -594,3 +683,5 @@ function drawHouseWallPhoto() {
         ctx.imageSmoothingEnabled = false; ctx.drawImage(houseWallPhotoImage, dx, dy, hw, wh);
     }
 }
+
+

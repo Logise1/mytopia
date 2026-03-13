@@ -1,7 +1,7 @@
 async function loadTileAssets() {
     const promises = [];
     const files = [
-        'grass', 'sand', 
+        'grass', 'sand',
         'grass-sand-up', 'grass-sand-down', 'grass-sand-left', 'grass-sand-right',
         'grass-sand-diagonal',
         'wave1', 'wave2', 'wave3', 'wave4', 'wavebig',
@@ -27,19 +27,19 @@ async function loadTileAssets() {
     // Cargar árbol, palmera, avión y niebla
     treeAsset.src = 'sprites/textures/tree.png';
     promises.push(new Promise(res => treeAsset.onload = res));
-    
+
     palmtreeAsset.src = 'sprites/textures/palmtree.png';
     promises.push(new Promise(res => palmtreeAsset.onload = res));
-    
+
     planeAsset.src = 'sprites/textures/plane.png';
     promises.push(new Promise(res => planeAsset.onload = res));
-    
+
     insidePlaneAsset.src = 'sprites/textures/insideplane.png';
     promises.push(new Promise(res => insidePlaneAsset.onload = res));
-    
+
     houseAsset.src = 'sprites/textures/casaplanta.png';
     promises.push(new Promise(res => houseAsset.onload = res));
-    
+
     dockAsset.src = 'sprites/textures/dock.png';
     promises.push(new Promise(res => dockAsset.onload = res));
 
@@ -48,7 +48,7 @@ async function loadTileAssets() {
 
     floorTileAsset.src = 'sprites/textures/home/suelotile.png';
     promises.push(new Promise(res => floorTileAsset.onload = res));
-    
+
     const fogFiles = ['fog 1.png', 'fog 2.png', 'fog 3.png'];
     fogFiles.forEach((fileName, i) => {
         fogAssets[i].src = `sprites/textures/${fileName}`;
@@ -61,10 +61,10 @@ async function loadTileAssets() {
 
 async function loadFurnitureAssets() {
     const promises = [];
-    
+
     furnitureAssets.sofa.src = 'sprites/textures/home/sofa.png';
     promises.push(new Promise(res => furnitureAssets.sofa.onload = res));
-    
+
     await Promise.all(promises);
     furnitureAssets.isLoaded = true;
 }
@@ -104,8 +104,7 @@ async function loadHUDAssets() {
 }
 
 async function loadAudioAssets() {
-    audioAssets.ambience.volume = 0.5;
-    audioAssets.chase.volume = 0.6;
+    updateAllVolumes();
     audioAssets.chase.loop = true;
 }
 
@@ -143,6 +142,22 @@ async function loadAllAnimations() {
     loadEntityAnim(player, 'sprites/characters');
     loadEntityAnim(faker, 'sprites/monsters/faker');
 
+    // Cargar 38 frames del emote 1 EN ORDEN SECUENCIAL
+    for (let i = 1; i <= 38; i++) {
+        await new Promise(resolve => {
+            const img = new Image();
+            img.src = `sprites/characters/emotes/1/${i}.png`;
+            img.onload = () => { 
+                emoteFrames[1][i - 1] = img; 
+                resolve(); 
+            };
+            img.onerror = () => { 
+                console.warn(`Error cargando emote frame ${i}.png`); 
+                resolve(); 
+            };
+        });
+    }
+
     // Cargar assets de entrada del Faker (Asegurando rutas y nombres claros)
     const loadFakerEnter = (imgObj, primary, fallback) => {
         return new Promise(res => {
@@ -166,9 +181,48 @@ async function loadAllAnimations() {
 }
 
 function getSkinAnimations(color) {
-    if (skinCaches[color]) return skinCaches[color];
+    if (skinCaches[color]) {
+        // Si ya está en caché, nos aseguramos de que los frames del emote local se actualicen si es el color activo
+        if (color === skinColor) player.emote.frames = skinCaches[color].emotes[1];
+        return skinCaches[color].walk;
+    }
+    
+    // Tintar animaciones base
     const newAnimSet = tintAnimations(player.animations, color);
-    skinCaches[color] = newAnimSet;
+
+    // Tintar emotes
+    const tannedEmotes = [];
+    const targetColor = hexToRgb(color);
+    if (targetColor && emoteFrames[1].length > 0) {
+        emoteFrames[1].forEach((img, idx) => {
+            if (!img) return;
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = img.naturalWidth;
+            tempCanvas.height = img.naturalHeight;
+            tempCtx.drawImage(img, 0, 0);
+            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+                if (a > 0 && g > r && g > b) {
+                    const factor = g / 255;
+                    data[i] = Math.floor(targetColor.r * factor);
+                    data[i + 1] = Math.floor(targetColor.g * factor);
+                    data[i + 2] = Math.floor(targetColor.b * factor);
+                }
+            }
+            tempCtx.putImageData(imageData, 0, 0);
+            tannedEmotes[idx] = tempCanvas;
+        });
+    }
+
+    skinCaches[color] = { walk: newAnimSet, emotes: { 1: tannedEmotes } };
+    
+    if (color === skinColor) {
+        player.emote.frames = tannedEmotes;
+    }
+
     return newAnimSet;
 }
 
@@ -176,10 +230,10 @@ const fakerSkinCaches = {};
 
 function getFakerSkinAnimations(color) {
     if (fakerSkinCaches[color]) return fakerSkinCaches[color];
-    
+
     // Tintar animaciones de caminata
     const newAnimSet = tintAnimations(faker.animations, color);
-    
+
     // Tintar también los assets de entrada para que coincidan con la piel
     const tintSingle = (img) => {
         if (!img || !img.complete || img.naturalWidth === 0) return img;

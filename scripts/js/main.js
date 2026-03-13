@@ -43,6 +43,28 @@ window.onload = async () => {
         minimapCanvas.height = 160;
     }
     requestAnimationFrame(gameLoop);
+
+    // 5. Configuración de Sliders de Volumen
+    const musicSlider = document.getElementById('music-volume-slider');
+    const sfxSlider = document.getElementById('sfx-volume-slider');
+
+    if (musicSlider) {
+        musicSlider.value = musicVolume; // Sincronizar con valor cargado
+        musicSlider.addEventListener('input', (e) => {
+            musicVolume = parseFloat(e.target.value);
+            localStorage.setItem('musicVolume', musicVolume); // Guardar
+            updateAllVolumes();
+        });
+    }
+
+    if (sfxSlider) {
+        sfxSlider.value = sfxVolume; // Sincronizar con valor cargado
+        sfxSlider.addEventListener('input', (e) => {
+            sfxVolume = parseFloat(e.target.value);
+            localStorage.setItem('sfxVolume', sfxVolume); // Guardar
+            updateAllVolumes();
+        });
+    }
 };
 
 
@@ -87,6 +109,13 @@ function gameLoop(currentTime) {
         requestAnimationFrame(gameLoop);
         return; // Terminamos aqui, no saltamos el renderizado del mapa
     }
+
+    // --- RENDERIZADO DEL MUNDO CON ZOOM ---
+    ctx.save();
+    // Centrar el zoom en el medio de la pantalla
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.scale(camera.zoom, camera.zoom);
+    ctx.translate(-canvas.width / 2, -canvas.height / 2);
 
     drawTiles();
 
@@ -175,9 +204,10 @@ function gameLoop(currentTime) {
     }
 
     // Ordenar y dibujar (Capa de profundidad)
-
     renderList.sort((a, b) => a.y - b.y);
     renderList.forEach(item => item.draw());
+
+    ctx.restore(); // Fin del zoom
 
     // Luces y Efectos
     applyDayNightEffect();

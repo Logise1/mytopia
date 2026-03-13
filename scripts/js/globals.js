@@ -91,6 +91,13 @@ const player = {
         up: [],
         left: [],
         right: []
+    },
+    emote: {
+        active: false,
+        frame: 0,
+        timer: 0,
+        duration: 0.1, // Sincronizado a 0.1s entre frames
+        frames: [] // Aquí se guardarán los sprites coloreados
     }
 };
 
@@ -138,7 +145,9 @@ const camera = {
     x: 0,
     y: 0,
     width: canvas.width,
-    height: canvas.height
+    height: canvas.height,
+    zoom: 1,
+    targetZoom: 1
 };
 
 const directions = ['forward', 'up', 'left', 'right'];
@@ -201,11 +210,35 @@ const audioAssets = {
     planeAmbience: new Audio('sfx/planeambience.mp3'),
     takeoffPlane: new Audio('sfx/takeoffplane.mp3'),
     landPlane: new Audio('sfx/landplane.mp3'),
+    emoteAudio: new Audio('sprites/characters/emotes/1/1.wav'),
     chaseTimer: 0,
     chaseDelay: 10 + Math.random() * 5, // 10-15s
     ambienceTimer: 0,
     isDead: false
 };
+
+// Cargar volúmenes guardados
+const savedMusicVol = localStorage.getItem('musicVolume');
+const savedSfxVol = localStorage.getItem('sfxVolume');
+let musicVolume = savedMusicVol !== null ? parseFloat(savedMusicVol) : 0.2;
+let sfxVolume = savedSfxVol !== null ? parseFloat(savedSfxVol) : 0.8;
+
+function updateAllVolumes() {
+    // Música
+    audioAssets.dayMusic.volume = musicVolume;
+    audioAssets.ambience.volume = musicVolume;
+    audioAssets.chase.volume = musicVolume;
+    audioAssets.planeAmbience.volume = musicVolume;
+
+    // SFX
+    audioAssets.enterHome.volume = sfxVolume;
+    audioAssets.exitHome.volume = sfxVolume;
+    audioAssets.takeoffPlane.volume = sfxVolume;
+    audioAssets.landPlane.volume = sfxVolume;
+    audioAssets.emoteAudio.volume = sfxVolume; // Ahora es SFX
+}
+
+const emoteFrames = { 1: [] }; // Frames originales de los emotes
 let treeShadowCanvas = null;
 let mytopianFriends = []; // Array of saved friend names
 let hasSetFriends = false;
@@ -233,12 +266,12 @@ const treeHitbox = {
 const houseHitbox = {
     xRel: 64, // Centrado relativo al anchor
     yRel: 65, // Alineado con la base visual (hy + 80)
-    w: 120,
+    w: 180,
     h: 40
 };
 
 const palmtreeHitbox = {
-    xRel: 32,
+    xRel: -10,
     yRel: 45,
     w: 60,
     h: 25
@@ -271,6 +304,7 @@ const multiplayer = {
 };
 
 const skinCaches = {}; // Almacenar el spritesheet procesado para cada color de piel visto
+const furnitureCaches = {}; // Cache de texturas de muebles con tinte
 
 // --- ECONOMÍA Y DECORACIÓN ---
 let coinCount = 500;

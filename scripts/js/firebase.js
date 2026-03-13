@@ -157,7 +157,14 @@ function startSync() {
 
         // Limpiar jugadores que ya no están en la base de datos
         for (let uid in multiplayer.players) {
-            if (!data[uid]) delete multiplayer.players[uid];
+            if (!data[uid]) {
+                // Parar audio si existía
+                if (multiplayer.players[uid].activeAudio) {
+                    multiplayer.players[uid].activeAudio.pause();
+                    multiplayer.players[uid].activeAudio = null;
+                }
+                delete multiplayer.players[uid];
+            }
         }
 
         for (let uid in data) {
@@ -167,7 +174,13 @@ function startSync() {
             // Solo ver a los que están EXACTAMENTE en la misma instancia de isla
             const myIslandKey = currentIsland + (multiplayer.currentIslandOwnerUid ? "_" + multiplayer.currentIslandOwnerUid : "");
             if (pData.island !== myIslandKey) {
-                if (multiplayer.players[uid]) delete multiplayer.players[uid];
+                if (multiplayer.players[uid]) {
+                    if (multiplayer.players[uid].activeAudio) {
+                        multiplayer.players[uid].activeAudio.pause();
+                        multiplayer.players[uid].activeAudio = null;
+                    }
+                    delete multiplayer.players[uid];
+                }
                 continue;
             }
 
@@ -189,6 +202,28 @@ function startSync() {
                 multiplayer.players[uid].isMoving = pData.isMoving;
                 multiplayer.players[uid].skin = pData.skin;
                 if (pData.username) multiplayer.players[uid].username = pData.username;
+                
+                // Sincronizar emote
+                const wasEmoting = multiplayer.players[uid].emoteActive || false;
+                multiplayer.players[uid].emoteActive = pData.emoteActive || false;
+                multiplayer.players[uid].emoteFrame = pData.emoteFrame || 0;
+                
+                // Audio perfecto sincronizado
+                if (!wasEmoting && pData.emoteActive) {
+                    // Iniciar audio
+                    if (!multiplayer.players[uid].activeAudio) {
+                        multiplayer.players[uid].activeAudio = new Audio('sprites/characters/emotes/1/1.wav');
+                    }
+                    multiplayer.players[uid].activeAudio.volume = sfxVolume;
+                    multiplayer.players[uid].activeAudio.currentTime = 0;
+                    multiplayer.players[uid].activeAudio.play().catch(e => {});
+                } 
+                
+                // Parar audio SOLO si el jugador se mueve (cancela el baile)
+                if (pData.isMoving && multiplayer.players[uid].activeAudio) {
+                    multiplayer.players[uid].activeAudio.pause();
+                    multiplayer.players[uid].activeAudio.currentTime = 0;
+                }
             }
         }
     });
@@ -233,7 +268,9 @@ function sendMovement() {
         username: multiplayer.username,
         skin: skinColor,
         island: myIslandKey,
-        status: multiplayer.status
+        status: multiplayer.status,
+        emoteActive: player.emote.active || false,
+        emoteFrame: player.emote.frame || 0
     });
 }
 

@@ -135,6 +135,54 @@ function update(dt) {
         inputMoving = true;
     }
 
+    // --- LÓGICA DE EMOTES ---
+    if (keys['Digit1'] && !player.emote.active) {
+        player.emote.active = true;
+        player.emote.frame = 0;
+        player.emote.timer = 0;
+        multiplayer.status = "Haciendo un baile...";
+        
+        // Sincronizar audio
+        if (audioAssets.emoteAudio) {
+            audioAssets.emoteAudio.currentTime = 0;
+            audioAssets.emoteAudio.play().catch(e => console.log("Audio emote error:", e));
+        }
+        
+        // Envío inmediato a multiplayer
+        multiplayer.lastSend = 0;
+    }
+
+    if (player.emote.active) {
+        if (audioAssets.emoteAudio && player.emote.frames.length > 0) {
+            // Sincronización milimétrica
+            const currentAudioTime = audioAssets.emoteAudio.currentTime;
+            const currentAudioFrame = Math.floor(currentAudioTime / player.emote.duration);
+            
+            // Mantenemos el último frame si el audio sigue sonando
+            player.emote.frame = Math.min(currentAudioFrame, player.emote.frames.length - 1);
+
+            // Solo terminamos cuando el audio llega al final de verdad
+            if (audioAssets.emoteAudio.ended) {
+                player.emote.active = false;
+                player.emote.frame = 0;
+                multiplayer.lastSend = 0;
+            }
+        } else if (player.emote.active && player.emote.frames.length === 0) {
+            player.emote.active = false;
+        }
+        
+        // Si el jugador se mueve, cancelamos el emote
+        if (inputMoving) {
+            player.emote.active = false;
+            // Parar sonido si se cancela
+            if (audioAssets.emoteAudio) {
+                audioAssets.emoteAudio.pause();
+                audioAssets.emoteAudio.currentTime = 0;
+            }
+            multiplayer.lastSend = 0; // Envío inmediato al cancelar
+        }
+    }
+
     // --- ZONAS Y TEXTOS ---
     if (currentIsland === 'central') {
         const cx = (mapSize / 2) * 64;
@@ -298,6 +346,10 @@ function update(dt) {
 
     // Actualizar Cámara de forma SUAVE (Lerp)
 
+
+    // Actualizar Zoom de Cámara de forma SUAVE (Lerp)
+    camera.targetZoom = player.emote.active ? 1.25 : 1.0;
+    camera.zoom += (camera.targetZoom - camera.zoom) * 5 * dt;
 
     // Actualizar Cámara de forma SUAVE (Lerp)
     const targetCamX = player.x - canvas.width / 2 + player.width / 2;
@@ -501,8 +553,8 @@ function update(dt) {
         audioAssets.dayMusic.loop = true;
         
         // Restore day music volume in case it was lowered by the plane fadeout
-        if (audioAssets.dayMusic.volume < 1 && gameState === 'playing' && !isTraveling) {
-            audioAssets.dayMusic.volume = Math.min(1, audioAssets.dayMusic.volume + dt * 0.5);
+        if (audioAssets.dayMusic.volume < musicVolume && gameState === 'playing' && !isTraveling) {
+            audioAssets.dayMusic.volume = Math.min(musicVolume, audioAssets.dayMusic.volume + dt * 0.5);
         }
         
         let playNightTheme = false;
