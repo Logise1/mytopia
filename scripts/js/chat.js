@@ -3,26 +3,33 @@ let localStream;
 const peerConnections = {};
 
 function initChat() {
+    console.log("Iniciando sistema de chat...");
     const chatInput = document.getElementById('chat-input');
-    const chatMessages = document.getElementById('chat-messages');
-
-    chatInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            const text = chatInput.value.trim();
-            if (text) {
-                sendChatMessage(text);
-                chatInput.value = '';
-            }
-        }
-    });
-
-    // Botón de activación manual
     const activateBtn = document.getElementById('activate-voice-btn');
-    activateBtn.onclick = () => {
-        initVoiceChat();
-        activateBtn.classList.add('hidden');
-        document.getElementById('voice-controls').classList.remove('hidden');
-    };
+
+    if (chatInput) {
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const text = chatInput.value.trim();
+                if (text) {
+                    sendChatMessage(text);
+                    chatInput.value = '';
+                }
+            }
+        });
+    }
+
+    if (activateBtn) {
+        activateBtn.onclick = () => {
+            console.log("Activando chat de voz...");
+            initVoiceChat();
+            activateBtn.classList.add('hidden');
+            const controls = document.getElementById('voice-controls');
+            if (controls) controls.classList.remove('hidden');
+        };
+    } else {
+        console.warn("No se encontró el botón de activación de voz.");
+    }
 }
 
 function initVoiceChat() {
@@ -173,7 +180,9 @@ function displayChatMessage(msg) {
 // Listener global de chat iniciado desde firebase.js al entrar en una isla
 let currentChatUnsubscribe = null;
 function listenToIslandChat() {
-    if (currentChatUnsubscribe) fb.off(currentChatUnsubscribe);
+    if (typeof currentChatUnsubscribe === 'function') {
+        currentChatUnsubscribe();
+    }
     
     const chatRef = fb.ref(db, `chats/${getIslandKey()}`);
     // Solo mensajes nuevos (usamos un timestamp)

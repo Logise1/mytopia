@@ -172,7 +172,6 @@
                 <input type="text" id="friend-search-input" placeholder="Buscar usuario...">
                 <button id="add-friend-btn">+</button>
             </div>
-            </div>
         </div>
 
         <!-- Menú de Ajustes -->
@@ -249,6 +248,7 @@
                 </div>
             </div>
         </div>
+    </div>
         
         <!-- Chat HUD -->
         <div id="chat-hud">
@@ -263,7 +263,6 @@
                 <canvas id="voice-waves" width="100" height="30"></canvas>
                 <div id="voice-indicator">🎤 Voz: Activo</div>
                 <button id="mute-voice-btn">Mute</button>
-            </div>
         </div>
     </div>
 
@@ -295,7 +294,7 @@
         };
 
         // Exportar módulos a window para game.js
-        window.fb = { initializeApp, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut, getDatabase, ref, set, onValue, update, onDisconnect, getFirestore, doc, setDoc, getDoc };
+        window.fb = { initializeApp, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut, getDatabase, ref, set, onValue, update, onDisconnect, getFirestore, doc, setDoc, getDoc, push, onChildAdded, off };
     </script>
 
     <input type="file" id="photo-upload-input" style="display:none;" accept="image/*">
