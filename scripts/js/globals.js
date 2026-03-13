@@ -304,11 +304,12 @@ const multiplayer = {
 };
 
 function getIslandKey() {
-    // Islas privadas: home, home_inside -> llevan UID del dueño
-    if (currentIsland === 'home' || currentIsland.includes('_inside')) {
-        return currentIsland + '_' + (multiplayer.currentIslandOwnerUid || multiplayer.userId);
+    // Si la isla tiene dueño (no es 'world' ni nulo), es una instancia privada
+    if (multiplayer.currentIslandOwnerUid && multiplayer.currentIslandOwnerUid !== 'world') {
+        let base = currentIsland.includes('_inside') ? 'inside' : 'home';
+        return base + '_' + multiplayer.currentIslandOwnerUid;
     }
-    // Islas públicas: central, etc. -> clave compartida sin UID
+    // Si no tiene dueño o es 'world', es una isla pública (como 'central')
     return currentIsland;
 }
 

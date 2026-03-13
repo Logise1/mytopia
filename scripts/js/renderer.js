@@ -664,20 +664,15 @@ function applyChromaticAberration() {
     }
     const i = faker.strength || 0; 
     if (i > 0) {
-        // Efecto glitch MASIVO
-        const s = i * 80; 
-        const jx = (Math.random() - 0.5) * i * 60; 
-        const jy = (Math.random() - 0.5) * i * 50; 
-        const sj = 1 + (Math.random() - 0.5) * i * 0.4;
-        const sk = (Math.random() - 0.5) * i * 15; 
-        
-        let invert = 0;
-        if (Math.random() < i * 0.3) invert = 100; 
-        
-        const hue = Math.floor(Math.random() * 360 * i);
+        // Efecto glitch sutil pero inquietante
+        const s = i * 20; 
+        const jx = (Math.random() - 0.5) * i * 12; 
+        const jy = (Math.random() - 0.5) * i * 8; 
+        const sj = 1 + (Math.random() - 0.5) * i * 0.08;
+        const sk = (Math.random() - 0.5) * i * 3; 
         
         canvas.style.transform = `translate(${jx}px, ${jy}px) scale(${sj}) skew(${sk}deg)`;
-        canvas.style.filter = `drop-shadow(${s}px 0px 0px rgba(255,0,0,${i*0.9})) drop-shadow(${-s}px 0px 0px rgba(0,255,255,${i*0.9})) saturate(${100+i*500}%) contrast(${100+i*300}%) brightness(${100-i*50}%) hue-rotate(${hue}deg) invert(${invert}%)`;
+        canvas.style.filter = `drop-shadow(${s}px 0px 0px rgba(255,0,0,${i*0.5})) drop-shadow(${-s}px 0px 0px rgba(0,255,255,${i*0.5})) saturate(${100+i*150}%) contrast(${100+i*80}%) brightness(${100-i*20}%)`;
     } else {
         canvas.style.filter = 'none';
         canvas.style.transform = 'none';

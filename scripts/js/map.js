@@ -11,8 +11,9 @@ function generateIsland(islandId) {
     mapSize = islandId === 'central' ? 140 : (isInside ? 30 : 100);
     
     seed = [...islandId].reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    if (islandId === 'home' && multiplayer.userId) {
-        seed = [...multiplayer.userId].reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    // Si la isla tiene un dueño (es una isla privada), la semilla debe ser el UID del dueño
+    if (multiplayer.currentIslandOwnerUid && multiplayer.currentIslandOwnerUid !== 'world') {
+        seed = [...multiplayer.currentIslandOwnerUid].reduce((acc, char) => acc + char.charCodeAt(0), 0);
     }
     
     const centerX = mapSize / 2;

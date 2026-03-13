@@ -101,6 +101,14 @@ function update(dt) {
         return; // Evita actualizar físicas u otros controles mientras viajas
     }
 
+    // Interpolación de otros jugadores
+    for (let uid in multiplayer.players) {
+        const p = multiplayer.players[uid];
+        // Lerp simple para suavidad (10% del camino por frame a 60fps aprox)
+        p.x += (p.targetX - p.x) * 10 * dt;
+        p.y += (p.targetY - p.y) * 10 * dt;
+    }
+
     if (gameState !== 'playing' && gameState !== 'customizing') return;
 
     let ax = 0;

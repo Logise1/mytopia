@@ -238,12 +238,11 @@ function sendMovement() {
     if (!multiplayer.userId || gameState !== 'playing') return;
 
     // Configuración de intervalos (Reducidos para mayor suavidad)
-    const NORMAL_INTERVAL = 150;   // 0.15s (antes 0.5s) mejor respuesta
-    const IDLE_INTERVAL = 3000;    // 3s (antes 5s)
-    const NEAR_DISTANCE = 1200;    // Radio de "cercanía"
+    const NORMAL_INTERVAL = 150;
+    const IDLE_INTERVAL = 500;
+    const NEAR_DISTANCE = 1200;
 
-    // Determinar si hay alguien cerca
-    let anyoneNear = false;
+    let anyoneNear = Object.keys(multiplayer.players).length > 0;
     for (let uid in multiplayer.players) {
         const p = multiplayer.players[uid];
         const dist = Math.sqrt(Math.pow(p.x - player.x, 2) + Math.pow(p.y - player.y, 2));
@@ -253,7 +252,7 @@ function sendMovement() {
         }
     }
 
-    const currentInterval = (anyoneNear && Object.keys(multiplayer.players).length > 0) ? NORMAL_INTERVAL : IDLE_INTERVAL;
+    const currentInterval = anyoneNear ? NORMAL_INTERVAL : IDLE_INTERVAL;
 
     const now = performance.now();
     if (now - multiplayer.lastSend < currentInterval) return;
