@@ -45,6 +45,17 @@ function createDebugPanel() {
         debug.panel.appendChild(div);
     });
 
+    // Checkbox para Instant Travel
+    const travelDiv = document.createElement('div');
+    travelDiv.style.marginTop = '10px';
+    travelDiv.innerHTML = `
+        <label style="cursor:pointer;">
+            <input type="checkbox" ${debug.instantTravel ? 'checked' : ''} 
+                   onchange="debug.instantTravel = this.checked"> Instant Travel
+        </label>
+    `;
+    debug.panel.appendChild(travelDiv);
+
     document.body.appendChild(debug.panel);
 
     window.updateDebugValue = (key, val, label) => {

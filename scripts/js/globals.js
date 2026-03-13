@@ -38,7 +38,8 @@ const dayNightColors = {
 // Modo Debug
 const debug = {
     active: false,
-    panel: null
+    panel: null,
+    instantTravel: false
 };
 
 // Assets HUD

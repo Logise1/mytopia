@@ -538,7 +538,18 @@ function drawSingleOtherPlayer(uid) {
     const anim = getSkinAnimations(p.skin || '#ffdbac')[p.direction];
     const frame = anim ? anim[Math.floor(p.frame || 0)] : null;
     if (frame && (frame.processed || frame.original)) {
-        ctx.imageSmoothingEnabled = false; ctx.drawImage(frame.processed || frame.original, sx, sy, 64, 64);
+        ctx.imageSmoothingEnabled = false;
+        const img = frame.processed || frame.original;
+        const orig = frame.original;
+        
+        let dw = 64;
+        let dh = 64;
+        if (orig) {
+            const aspect = orig.width / orig.height;
+            dw = 64 * aspect;
+        }
+        
+        ctx.drawImage(img, sx + (64 - dw) / 2, sy, dw, dh);
     }
 }
 

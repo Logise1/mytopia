@@ -5,12 +5,14 @@ function update(dt) {
     if (gameState === 'traveling') {
         const menuEl = document.getElementById('travel-menu');
         const takeoffTime = 8;
-        const landStartTime = TRAVEL_TIME - takeoffTime;
+        const newsDuration = debug.instantTravel ? 1 : (TRAVEL_TIME - 2 * takeoffTime);
+        const totalDuration = takeoffTime + newsDuration + takeoffTime;
+        const landStartTime = takeoffTime + newsDuration;
 
         if (isTraveling && travelTimer > 0) {
             let prevTimer = travelTimer;
             travelTimer += dt;
-            let percent = (travelTimer / TRAVEL_TIME) * 100;
+            let percent = (travelTimer / totalDuration) * 100;
             document.getElementById('flight-bar').style.width = percent + '%';
             
             // Actualizar minimapa de vuelo
@@ -60,7 +62,7 @@ function update(dt) {
                 }
             }
             
-            if (travelTimer >= TRAVEL_TIME) completeTravel();
+            if (travelTimer >= totalDuration) completeTravel();
         }
 
         let targetCamX = camera.x;
@@ -75,7 +77,7 @@ function update(dt) {
             
             if (menuEl) menuEl.classList.add('hidden');
         } else if (travelTimer >= landStartTime) {
-            const rawT = (TRAVEL_TIME - travelTimer) / takeoffTime;
+            const rawT = (totalDuration - travelTimer) / takeoffTime;
             const t = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
             
             targetCamX = (planeX * 64) - (t * 600) - canvas.width / 2 + 60;
