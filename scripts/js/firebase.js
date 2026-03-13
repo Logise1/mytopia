@@ -172,7 +172,8 @@ function startSync() {
 
             const pData = data[uid];
             // Solo ver a los que están EXACTAMENTE en la misma instancia de isla
-            const myIslandKey = currentIsland + (multiplayer.currentIslandOwnerUid ? "_" + multiplayer.currentIslandOwnerUid : "");
+            // Solo islas privadas (home/_inside) llevan el UID del dueño
+            const myIslandKey = getIslandKey();
             if (pData.island !== myIslandKey) {
                 if (multiplayer.players[uid]) {
                     if (multiplayer.players[uid].activeAudio) {
@@ -259,7 +260,7 @@ function sendMovement() {
 
     multiplayer.lastSend = now;
     const myRef = fb.ref(db, `players/${multiplayer.userId}`);
-    const myIslandKey = currentIsland + (multiplayer.currentIslandOwnerUid ? "_" + multiplayer.currentIslandOwnerUid : "");
+    const myIslandKey = getIslandKey();
     fb.update(myRef, {
         x: player.x,
         y: player.y,

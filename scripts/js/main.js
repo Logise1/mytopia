@@ -211,6 +211,7 @@ function gameLoop(currentTime) {
 
     // Luces y Efectos
     applyDayNightEffect();
+    applyChromaticAberration();
     drawHUD();
     drawInteractionPrompt();
     drawMinimap();

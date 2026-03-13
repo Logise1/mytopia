@@ -431,8 +431,8 @@ function drawHUD() {
     if (isActuallyNight && uiCyclePhase === 'day') { uiCyclePhase = 'night'; uiTransitionAnimTime = performance.now(); }
     else if (!isActuallyNight && uiCyclePhase === 'night') { uiCyclePhase = 'day'; uiTransitionAnimTime = performance.now(); }
     const rW = 100, rH = 100, rX = canvas.width - rW - 20, rY = canvas.height - rH - 25;
-    if (uiTransitionAnimTime > 0 && performance.now() - uiTransitionAnimTime < 500) {
-        let prog = (performance.now() - uiTransitionAnimTime) / 500;
+    if (uiTransitionAnimTime > 0 && performance.now() - uiTransitionAnimTime < 2000) {
+        let prog = (performance.now() - uiTransitionAnimTime) / 2000;
         let actFrame = Math.floor(prog * 6) + 1;
         if (actFrame > 6) actFrame = 6;
         if (uiCyclePhase === 'day') actFrame = 7 - actFrame;
@@ -570,8 +570,27 @@ function drawFaker() {
 }
 
 function applyDayNightEffect() {
-    let opacity = 0; if (worldTime >= 18 && worldTime <= 21) opacity = ((worldTime-18)/3)*0.6; else if (worldTime > 21 || worldTime < 5) opacity = 0.6; else if (worldTime >= 5 && worldTime <= 8) opacity = (1-(worldTime-5)/3)*0.6;
-    if (opacity > 0) { ctx.fillStyle = `rgba(5, 5, 40, ${opacity})`; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+    let opacity = 0;
+    
+    // Si hay una transición de 2s activa en el HUD, usamos esa para la iluminación
+    if (uiTransitionAnimTime > 0 && performance.now() - uiTransitionAnimTime < 2000) {
+        let prog = (performance.now() - uiTransitionAnimTime) / 2000;
+        if (uiCyclePhase === 'night') {
+            opacity = prog * 0.6; // Anocheciendo
+        } else {
+            opacity = (1 - prog) * 0.6; // Amaneciendo
+        }
+    } else {
+        // Lógica normal basada en worldTime
+        if (worldTime >= 18 && worldTime <= 21) opacity = ((worldTime - 18) / 3) * 0.6;
+        else if (worldTime > 21 || worldTime < 5) opacity = 0.6;
+        else if (worldTime >= 5 && worldTime <= 8) opacity = (1 - (worldTime - 5) / 3) * 0.6;
+    }
+
+    if (opacity > 0) {
+        ctx.fillStyle = `rgba(5, 5, 40, ${opacity})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 }
 
 function drawHouse(dx, dy) {
@@ -638,15 +657,30 @@ function drawFurnitureSingle(f) {
 }
 
 function applyChromaticAberration() {
-    if (!faker.active || faker.spawnState === 'hidden') { canvas.style.filter = 'none'; canvas.style.transform = 'none'; return; }
-    const i = faker.strength || 0; if (i > 0) {
-        // Hacemos que el glitch (s) y el jitter (jx, jy) sean mucho mayores
-        const s = i * 60; // 60px separación en vez de 25
-        const jx = (Math.random() - 0.5) * i * 50; 
-        const jy = (Math.random() - 0.5) * i * 40; 
-        const sj = 1 + (Math.random() - 0.5) * i * 0.3;
-        canvas.style.transform = `translate(${jx}px, ${jy}px) scale(${sj})`;
-        canvas.style.filter = `drop-shadow(${s}px 0px 0px rgba(255,0,0,${i*0.9})) drop-shadow(${-s}px 0px 0px rgba(0,255,255,${i*0.9})) saturate(${100+i*300}%) contrast(${100+i*150}%) brightness(${100-i*40}%)`;
+    if (!faker.active || faker.spawnState === 'hidden') {
+        canvas.style.filter = 'none';
+        canvas.style.transform = 'none';
+        return;
+    }
+    const i = faker.strength || 0; 
+    if (i > 0) {
+        // Efecto glitch MASIVO
+        const s = i * 80; 
+        const jx = (Math.random() - 0.5) * i * 60; 
+        const jy = (Math.random() - 0.5) * i * 50; 
+        const sj = 1 + (Math.random() - 0.5) * i * 0.4;
+        const sk = (Math.random() - 0.5) * i * 15; 
+        
+        let invert = 0;
+        if (Math.random() < i * 0.3) invert = 100; 
+        
+        const hue = Math.floor(Math.random() * 360 * i);
+        
+        canvas.style.transform = `translate(${jx}px, ${jy}px) scale(${sj}) skew(${sk}deg)`;
+        canvas.style.filter = `drop-shadow(${s}px 0px 0px rgba(255,0,0,${i*0.9})) drop-shadow(${-s}px 0px 0px rgba(0,255,255,${i*0.9})) saturate(${100+i*500}%) contrast(${100+i*300}%) brightness(${100-i*50}%) hue-rotate(${hue}deg) invert(${invert}%)`;
+    } else {
+        canvas.style.filter = 'none';
+        canvas.style.transform = 'none';
     }
 }
 

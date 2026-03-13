@@ -303,6 +303,15 @@ const multiplayer = {
     currentIslandOwnerUid: null
 };
 
+function getIslandKey() {
+    // Islas privadas: home, home_inside -> llevan UID del dueño
+    if (currentIsland === 'home' || currentIsland.includes('_inside')) {
+        return currentIsland + '_' + (multiplayer.currentIslandOwnerUid || multiplayer.userId);
+    }
+    // Islas públicas: central, etc. -> clave compartida sin UID
+    return currentIsland;
+}
+
 const skinCaches = {}; // Almacenar el spritesheet procesado para cada color de piel visto
 const furnitureCaches = {}; // Cache de texturas de muebles con tinte
 
