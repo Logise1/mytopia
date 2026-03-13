@@ -76,11 +76,11 @@ function gameLoop(currentTime) {
     
     if (isPhase2) {
         if (insidePlaneAsset && insidePlaneAsset.complete && insidePlaneAsset.naturalWidth > 0) {
-            // Dibujar el interior del avion ocupando toda la pantalla sin preservar aspect ratio para que cubra la UI
-            ctx.drawImage(insidePlaneAsset, 0, 0, canvas.width, canvas.height);
+            // Dibujar el interior del avion ocupando la mitad izquierda de la pantalla
+            ctx.drawImage(insidePlaneAsset, 0, 0, canvas.width / 2, canvas.height);
         } else {
             ctx.fillStyle = worldTime >= 20 || worldTime <= 6 ? '#050528' : '#87CEEB';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, canvas.width / 2, canvas.height);
         }
 
         if (debug.active) updateDebugPanel();
@@ -322,8 +322,8 @@ canvas.addEventListener('mousedown', (e) => {
     if (currentIsland.includes('_inside')) {
         const photoX = (mapSize/2)*64;
         const photoY = (mapSize/2 - 5)*64;
-        // Si clickeamos cerca de la pared del fondo
-        if (worldX >= photoX - 160 && worldX <= photoX + 160 && worldY >= photoY - 128 && worldY <= photoY + 64) {
+        // Si clickeamos cerca de la pared del fondo (ahora ocupa 704px de ancho)
+        if (worldX >= photoX - 352 && worldX <= photoX + 352 && worldY >= photoY - 320 && worldY <= photoY + 64) {
              document.getElementById('photo-upload-input').click();
              return; // No mover muebles si clickeamos la pared
         }

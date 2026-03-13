@@ -195,6 +195,12 @@ const fogAssets = [new Image(), new Image(), new Image()];
 const audioAssets = {
     ambience: new Audio('sfx/music/ambiencemonsters.mp3'),
     chase: new Audio('sfx/music/persecucion.mp3'),
+    dayMusic: new Audio('sfx/music/daymusic.m4a'),
+    enterHome: new Audio('sfx/enterhome.mp3'),
+    exitHome: new Audio('sfx/exithome.mp3'),
+    planeAmbience: new Audio('sfx/planeambience.mp3'),
+    takeoffPlane: new Audio('sfx/takeoffplane.mp3'),
+    landPlane: new Audio('sfx/landplane.mp3'),
     chaseTimer: 0,
     chaseDelay: 10 + Math.random() * 5, // 10-15s
     ambienceTimer: 0,

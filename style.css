@@ -189,6 +189,23 @@ canvas {
     display: none !important;
 }
 
+#fade-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: black;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease-in-out;
+}
+
+#fade-overlay.active {
+    opacity: 1;
+}
+
 #settings-btn {
     position: absolute;
     top: 20px;
@@ -325,20 +342,22 @@ canvas {
 .travel-flex {
     position: relative;
     width: 100%;
-    height: 450px; /* Mas alto */
+    height: 100%;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden; /* Evita que el iframe se salga */
+    justify-content: flex-end; /* Iframe a la derecha */
+    align-items: stretch;
+    overflow: hidden;
 }
 
 .travel-info-overlay {
     position: absolute;
-    top: 20px;
+    top: auto;
+    bottom: 20px;
     left: 20px;
-    right: 20px;
+    width: calc(50% - 40px); /* Mitad izquierda menos margins */
+    right: auto;
     padding: 15px;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(4px);
     border: 2px solid rgba(255, 181, 139, 0.5);
     border-radius: 12px;
@@ -355,7 +374,7 @@ canvas {
 }
 
 .travel-news-frame {
-    margin-left: auto; /* Echa a la derecha el iframe */
+    margin-left: auto;
     width: 50%; 
     height: 100%;
     max-width: none;
@@ -366,11 +385,13 @@ canvas {
     overflow: hidden;
     position: relative;
     z-index: 1;
+    box-sizing: border-box;
 }
 
 .travel-news-frame iframe {
     width: 100%;
     height: 100%;
+    display: block;
 }
 
 #friends-setup {
@@ -404,10 +425,14 @@ canvas {
 
 #travel-menu.cabin-mode {
     background: none;
-    top: 40px;
-    transform: translate(-50%, 0);
-    height: auto;
-    width: 80%;
+    top: 0;
+    left: 0;
+    transform: none;
+    height: 100%;
+    width: 100%;
+    border-radius: 0;
+    border: none;
+    margin: 0;
 }
 
 #travel-menu.cabin-mode::before {
@@ -418,6 +443,7 @@ canvas {
     background: none;
     border: none;
     padding: 0;
+    height: 100%;
 }
 
 #travel-menu.cabin-mode #travel-title,
@@ -430,6 +456,8 @@ canvas {
 
 #travel-menu.cabin-mode #travel-progress-ui {
     display: block !important;
+    height: 100%;
+    width: 100%;
 }
 
 #travel-menu.cabin-mode .progress-bar-bg {
@@ -558,7 +586,7 @@ canvas {
     font-size: 24px;
     z-index: 10;
     top: 50%;
-    transform: translateY(-50%) rotate(90deg);
+    transform: translateY(-50%) rotate(45deg);
     transition: left 0.1s linear;
 }
 
@@ -586,17 +614,16 @@ canvas {
 /* --- HUD DE INVENTARIO --- */
 #inventory-hud {
     position: absolute;
-    top: 200px; /* Bajado para dejar sitio al minimapa */
-    right: 10px;
+    bottom: 20px; 
+    left: 20px;
     z-index: 1000;
     cursor: pointer;
     transition: transform 0.2s;
 }
 
 #inventory-hud img {
-    width: 256px; /* Casi el doble del tamaño original */
+    width: 220px; /* Más grande según lo pedido */
     height: auto;
-    max-height: 256px;
     image-rendering: pixelated;
     object-fit: contain;
 }

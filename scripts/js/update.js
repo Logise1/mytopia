@@ -26,6 +26,38 @@ function update(dt) {
                 // Mover a zona segura en lugar de coordenadas negativas extremas que pueden fallar
                 player.x = (mapSize/2)*64;
                 player.y = (mapSize/2)*64;
+
+                // Fade out takeoffPlane, y fade in planeAmbience
+                if (audioAssets.takeoffPlane && !audioAssets.takeoffPlane.paused) {
+                    let fo = setInterval(() => {
+                        if (audioAssets.takeoffPlane.volume > 0.05) audioAssets.takeoffPlane.volume -= 0.05;
+                        else { audioAssets.takeoffPlane.pause(); audioAssets.takeoffPlane.volume = 1; clearInterval(fo); }
+                    }, 100);
+                }
+                if (audioAssets.planeAmbience) {
+                    let fi = setInterval(() => {
+                        if (audioAssets.planeAmbience.volume < 0.95) audioAssets.planeAmbience.volume += 0.05;
+                        else { audioAssets.planeAmbience.volume = 1; clearInterval(fi); }
+                    }, 100);
+                }
+            }
+            
+            if (prevTimer <= landStartTime && travelTimer > landStartTime) {
+                // Fade out planeAmbience, iniciar landPlane a topo (Crossfade visual a la animacion de aterrizaje)
+                if (audioAssets.landPlane) {
+                    audioAssets.landPlane.currentTime = 0;
+                    audioAssets.landPlane.volume = 1;
+                    audioAssets.landPlane.play().catch(e => console.log(e));
+                }
+                if (audioAssets.planeAmbience && !audioAssets.planeAmbience.paused) {
+                    let fo = setInterval(() => {
+                        if (audioAssets.planeAmbience.volume > 0.05) audioAssets.planeAmbience.volume -= 0.05;
+                        else { audioAssets.planeAmbience.pause(); audioAssets.planeAmbience.volume = 1; clearInterval(fo); }
+                    }, 100);
+                }
+                if (audioAssets.takeoffPlane && !audioAssets.takeoffPlane.paused) {
+                    audioAssets.takeoffPlane.pause();
+                }
             }
             
             if (travelTimer >= TRAVEL_TIME) completeTravel();
@@ -460,6 +492,61 @@ function update(dt) {
         faker.active = false;
         faker.spawnState = 'hidden';
         faker.spawnWait = 0; 
+    }
+
+    // --- LÓGICA DE AUDIO (Ambiente y Persecución) ---
+    if (audioAssets.ambience && audioAssets.chase && audioAssets.dayMusic) {
+        audioAssets.ambience.loop = true;
+        audioAssets.chase.loop = true;
+        audioAssets.dayMusic.loop = true;
+        
+        // Restore day music volume in case it was lowered by the plane fadeout
+        if (audioAssets.dayMusic.volume < 1 && gameState === 'playing' && !isTraveling) {
+            audioAssets.dayMusic.volume = Math.min(1, audioAssets.dayMusic.volume + dt * 0.5);
+        }
+        
+        let playNightTheme = false;
+        let playDayTheme = false;
+        
+        if (gameState === 'playing' && !isTraveling && !currentIsland.includes('_inside')) {
+            const nowH = worldTime;
+            if (nowH >= 18 || nowH < 6) {
+                playNightTheme = true;
+            } else {
+                playDayTheme = true;
+            }
+        }
+
+        if (playNightTheme) {
+            if (!audioAssets.dayMusic.paused) audioAssets.dayMusic.pause();
+            
+            if (faker && faker.active && faker.spawnState === 'chasing') {
+                if (!audioAssets.ambience.paused) audioAssets.ambience.pause();
+                if (audioAssets.chase.paused) {
+                    audioAssets.chase.currentTime = 0; // en cuanto salte persecucion
+                    audioAssets.chase.play().catch(e => console.log(e));
+                }
+            } else {
+                if (!audioAssets.chase.paused) audioAssets.chase.pause();
+                if (audioAssets.ambience.paused) {
+                    audioAssets.ambience.play().catch(e => console.log(e));
+                }
+            }
+        } else if (playDayTheme) {
+            if (!audioAssets.ambience.paused) audioAssets.ambience.pause();
+            if (!audioAssets.chase.paused) audioAssets.chase.pause();
+            
+            if (audioAssets.dayMusic.paused) {
+                audioAssets.dayMusic.play().catch(e => console.log(e));
+            }
+        } else {
+            // Ni de dia ni de noche en el exterior (ej. viajando o dentro de casa)
+            if (!isTraveling) { // Si viaja, travel.js o su propio tick puede hacer un fadeOut, así que solo pausamos si NO está viajando para evitar cortarlo brusco antes del fade
+               if (!audioAssets.dayMusic.paused) audioAssets.dayMusic.pause();
+               if (!audioAssets.ambience.paused) audioAssets.ambience.pause();
+               if (!audioAssets.chase.paused) audioAssets.chase.pause();
+            }
+        }
     }
 }
 

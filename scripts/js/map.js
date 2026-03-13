@@ -124,30 +124,68 @@ function generateIsland(islandId) {
 }
 
 function enterHouse(baseIslandId) {
-    // La casa pertenece al DUEÑO DE LA ISLA donde está la puerta
-    const ownerUid = multiplayer.currentIslandOwnerUid || multiplayer.userId;
-    currentIsland = baseIslandId + '_inside_' + ownerUid;
+    // 1. Efecto Fade y Sonido
+    const fadeOverlay = document.getElementById('fade-overlay');
+    if (fadeOverlay) {
+        fadeOverlay.classList.add('active'); // Fundir a negro
+    }
     
-    generateIsland(currentIsland);
-    loadFurniture(ownerUid); // Cargar muebles del dueño
+    if (audioAssets.enterHome) {
+        audioAssets.enterHome.currentTime = 0;
+        audioAssets.enterHome.play().catch(e => console.log(e));
+    }
 
-    player.x = (mapSize / 2) * 64;
-    player.y = (mapSize / 2 + 4) * 64;
-    multiplayer.players = {};
-    multiplayer.lastSend = 0;
-    sendMovement();
+    // 2. Transición lógica con pequeño retraso para que de tiempo a negro
+    setTimeout(() => {
+        // La casa pertenece al DUEÑO DE LA ISLA donde está la puerta
+        const ownerUid = multiplayer.currentIslandOwnerUid || multiplayer.userId;
+        currentIsland = baseIslandId + '_inside_' + ownerUid;
+        
+        generateIsland(currentIsland);
+        loadFurniture(ownerUid); // Cargar muebles del dueño
+
+        player.x = (mapSize / 2) * 64;
+        player.y = (mapSize / 2 + 4) * 64;
+        multiplayer.players = {};
+        multiplayer.lastSend = 0;
+        sendMovement();
+
+        // 3. Volver a aclarar (Desaparece el fade)
+        if (fadeOverlay) {
+            fadeOverlay.classList.remove('active');
+        }
+    }, 250); // 0.25s como fue solicitado
 }
 
 function exitHouse() {
-    // Volver a la isla base quitando el ID de la casa
-    currentIsland = currentIsland.split('_inside_')[0];
-    generateIsland(currentIsland);
-    if (islandFeatures.house) {
-        player.x = islandFeatures.house.x * 64 + 64;
-        player.y = islandFeatures.house.y * 64 + 180; // Aparezco en el portal
+    // 1. Efecto Fade y Sonido (usamos el mismo para salir, o puedes añadir otro)
+    const fadeOverlay = document.getElementById('fade-overlay');
+    if (fadeOverlay) {
+        fadeOverlay.classList.add('active'); // Fundir a negro
     }
-    multiplayer.players = {};
-    multiplayer.lastSend = 0;
-    sendMovement();
+
+    if (audioAssets.exitHome) {
+        audioAssets.exitHome.currentTime = 0;
+        audioAssets.exitHome.play().catch(e => console.log(e));
+    }
+
+    // 2. Transición lógica con pequeño retraso
+    setTimeout(() => {
+        // Volver a la isla base quitando el ID de la casa
+        currentIsland = currentIsland.split('_inside_')[0];
+        generateIsland(currentIsland);
+        if (islandFeatures.house) {
+            player.x = islandFeatures.house.x * 64 + 64;
+            player.y = islandFeatures.house.y * 64 + 180; // Aparezco en el portal
+        }
+        multiplayer.players = {};
+        multiplayer.lastSend = 0;
+        sendMovement();
+
+        // 3. Volver a aclarar
+        if (fadeOverlay) {
+            fadeOverlay.classList.remove('active');
+        }
+    }, 250); 
 }
 
