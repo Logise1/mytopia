@@ -301,7 +301,8 @@ const multiplayer = {
     status: "Explorando",
     friends: [], // Lista de UIDs de amigos
     allUsers: {}, // Cache de todos los usuarios para añadir amigos
-    currentIslandOwnerUid: null
+    currentIslandOwnerUid: null,
+    peerId: null
 };
 
 function getIslandKey() {

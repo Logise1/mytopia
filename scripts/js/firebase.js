@@ -51,6 +51,8 @@ async function initFirebase() {
             startSync();
             initSocial();
             loadFriends(user.uid);
+            initChat();
+            listenToIslandChat();
         } else {
             multiplayer.userId = null;
             multiplayer.username = "";
@@ -208,6 +210,12 @@ function startSync() {
                 const wasEmoting = multiplayer.players[uid].emoteActive || false;
                 multiplayer.players[uid].emoteActive = pData.emoteActive || false;
                 multiplayer.players[uid].emoteFrame = pData.emoteFrame || 0;
+                multiplayer.players[uid].emoteType = pData.emoteType || 1;
+                
+                // Chat y Voz
+                multiplayer.players[uid].peerId = pData.peerId || null;
+                multiplayer.players[uid].isTalking = pData.isTalking || false;
+                handleVoiceP2P(uid, pData);
                 
                 // Audio perfecto sincronizado
                 if (!wasEmoting && pData.emoteActive) {
@@ -270,7 +278,10 @@ function sendMovement() {
         island: myIslandKey,
         status: multiplayer.status,
         emoteActive: player.emote.active || false,
-        emoteFrame: player.emote.frame || 0
+        emoteFrame: player.emote.frame || 0,
+        emoteType: player.emote.type || 1,
+        peerId: multiplayer.peerId || null,
+        isTalking: player.isTalking || false
     });
 }
 

@@ -153,6 +153,7 @@ function completeTravel() {
         multiplayer.lastSend = 0; 
         multiplayer.players = {}; // Limpiar estado de red anterior
         sendMovement();
+        listenToIslandChat();
 
         // 3. Volver a aclarar
         if (fadeOverlay) {

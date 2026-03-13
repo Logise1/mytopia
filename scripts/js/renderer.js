@@ -350,35 +350,33 @@ function drawPlayer() {
     const drawX = screenX + (player.width - drawW) / 2;
     const drawY = screenY + (player.height - drawH) + jumpOffset;
 
-    if (player.emote && player.emote.active && player.emote.frames[player.emote.frame]) {
-        const eFrame = player.emote.frames[player.emote.frame];
-        
-        // El jugador se dibuja a 64px de alto. Para que el pixel-size sea el mismo,
-        // necesitamos saber a qué escala se está dibujando ese sprite de 64px.
-        const walkAnim = player.animations.forward[0];
-        const charOrigH = (walkAnim && walkAnim.original) ? walkAnim.original.height : 18;
-        // Esta es la escala real: de los píxeles originales a los 64px de pantalla
-        const currentScale = 64 / charOrigH;
+    if (player.emote && player.emote.active) {
+        let eFrame = null;
+        if (player.emote.type === 2) eFrame = player.emote.frame2;
+        else eFrame = player.emote.frames[player.emote.frame];
 
-        // Aplicamos ESA MISMA escala a los frames del emote
-        const eW = eFrame.width * currentScale;
-        const eH = eFrame.height * currentScale;
-        
-        const drawEX = screenX + (player.width - eW) / 2;
-        let drawEY = screenY + (player.height - eH);
-        
-        // Secuencia de saltitos sincronizada (3 frames: 31-33)
-        const frameNum = player.emote.frame + 1;
-        if (frameNum === 31) {
-            drawEY -= 15;
-        } else if (frameNum === 32) {
-            drawEY -= 10;
-        } else if (frameNum === 33) {
-            drawEY -= 5;
+        if (eFrame) {
+            const walkAnim = player.animations.forward[0];
+            const charOrigH = (walkAnim && walkAnim.original) ? walkAnim.original.height : 18;
+            const currentScale = 64 / charOrigH;
+
+            const eW = eFrame.width * currentScale;
+            const eH = eFrame.height * currentScale;
+            
+            const drawEX = screenX + (player.width - eW) / 2;
+            let drawEY = screenY + (player.height - eH);
+            
+            // Saltitos solo para el baile (tipo 1)
+            if (player.emote.type === 1) {
+                const frameNum = player.emote.frame + 1;
+                if (frameNum === 31) drawEY -= 15;
+                else if (frameNum === 32) drawEY -= 10;
+                else if (frameNum === 33) drawEY -= 5;
+            }
+            
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(eFrame, drawEX, drawEY, eW, eH);
         }
-        
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(eFrame, drawEX, drawEY, eW, eH);
     } else if (gameState === 'dead' && frameData && (frameData.processed || frameData.original)) {
         ctx.save();
         ctx.translate(drawX + drawW / 2, drawY + drawH / 2);
@@ -407,9 +405,24 @@ function drawPlayer() {
         ctx.textAlign = "center";
         ctx.strokeStyle = "rgba(0,0,0,0.8)";
         ctx.lineWidth = 3;
-        ctx.strokeText(multiplayer.username, screenX + player.width / 2, screenY - 10);
+        const displayName = (player.emote.active && player.emote.type === 2) ? "Absolute Cinema" : multiplayer.username;
+        ctx.strokeText(displayName, screenX + player.width / 2, screenY - 10);
         ctx.fillStyle = "white";
-        ctx.fillText(multiplayer.username, screenX + player.width / 2, screenY - 10);
+        ctx.fillText(displayName, screenX + player.width / 2, screenY - 10);
+        ctx.restore();
+    }
+
+    // Dibujar bocadillo de chat si existe
+    if (player.lastMsg && Date.now() - player.msgTime < 5000) {
+        drawChatBubble(screenX, screenY - 20, player.lastMsg, player.msgTime);
+    }
+
+    // Indicador de voz
+    if (player.isTalking) {
+        ctx.save();
+        ctx.font = "20px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("🎤", screenX + 32, screenY - 40);
         ctx.restore();
     }
 }
@@ -498,23 +511,41 @@ function drawSingleOtherPlayer(uid) {
     const p = multiplayer.players[uid];
     const sx = p.x - camera.x, sy = p.y - camera.y;
     if (sx < -100 || sx > canvas.width + 100 || sy < -100 || sy > canvas.height + 100) return;
-    ctx.save(); ctx.font = '20px "Tiny5", sans-serif'; ctx.textAlign = "center"; ctx.fillStyle = "white"; ctx.fillText(p.username || "", sx + 32, sy - 10); ctx.restore();
+    
+    ctx.save(); 
+    ctx.font = '20px "Tiny5", sans-serif'; 
+    ctx.textAlign = "center"; 
+    ctx.fillStyle = "white"; 
+    const displayName = (p.emoteActive && p.emoteType === 2) ? "Absolute Cinema" : (p.username || "");
+    ctx.fillText(displayName, sx + 32, sy - 10);
+    
+    // Indicador de voz para otros
+    if (p.isTalking) {
+        ctx.fillStyle = "#4caf50";
+        ctx.fillText("🎤", sx + 32, sy - 30);
+    }
+
+    // Bocadillo de chat para otros
+    if (p.lastMsg && Date.now() - p.msgTime < 5000) {
+        drawChatBubble(sx, sy - 20, p.lastMsg, p.msgTime);
+    }
+    ctx.restore();
     
     // Si el otro jugador está haciendo un emote
     if (p.emoteActive) {
-        const skinAnims = getSkinAnimations(p.skin || '#ffdbac');
-        // Obtener emote frames del cache de skins
-        const cached = skinCaches[p.skin || '#ffdbac'];
-        const emoteF = cached && cached.emotes && cached.emotes[1] ? cached.emotes[1] : null;
-        
-        // Sincronización absoluta con el audio que oímos de él
-        let frameIdx = p.emoteFrame || 0;
-        if (p.activeAudio && !p.activeAudio.paused) {
-            frameIdx = Math.floor(p.activeAudio.currentTime / 0.1);
+        let eFrame = null;
+        if (p.emoteType === 2) {
+            // Cargar dinámicamente si no existe en su cache (o usar una referencia global)
+            eFrame = player.emote.frame2; 
+        } else {
+            const cached = skinCaches[p.skin || '#ffdbac'];
+            const emoteF = cached && cached.emotes && cached.emotes[1] ? cached.emotes[1] : null;
+            let frameIdx = p.emoteFrame || 0;
+            if (p.activeAudio && !p.activeAudio.paused) frameIdx = Math.floor(p.activeAudio.currentTime / 0.1);
+            if (emoteF) eFrame = emoteF[frameIdx];
         }
-        
-        if (emoteF && emoteF[frameIdx]) {
-            const eFrame = emoteF[frameIdx];
+
+        if (eFrame) {
             const walkAnim = player.animations.forward[0];
             const charOrigH = (walkAnim && walkAnim.original) ? walkAnim.original.height : 18;
             const currentScale = 64 / charOrigH;
@@ -523,11 +554,12 @@ function drawSingleOtherPlayer(uid) {
             const drawEX = sx + (64 - eW) / 2;
             let drawEY = sy + (64 - eH);
             
-            // Saltitos sincronizados (3 frames: 31-33)
-            const frameNum = frameIdx + 1;
-            if (frameNum === 31) drawEY -= 15;
-            else if (frameNum === 32) drawEY -= 10;
-            else if (frameNum === 33) drawEY -= 5;
+            if (p.emoteType === 1) {
+                const frameNum = (p.emoteFrame || 0) + 1;
+                if (frameNum === 31) drawEY -= 15;
+                else if (frameNum === 32) drawEY -= 10;
+                else if (frameNum === 33) drawEY -= 5;
+            }
             
             ctx.imageSmoothingEnabled = false;
             ctx.drawImage(eFrame, drawEX, drawEY, eW, eH);
@@ -578,6 +610,34 @@ function drawFaker() {
         let dw = (imgH > 0) ? (imgW / imgH) * 64 : 64;
         ctx.drawImage(img, sx + (64 - dw)/2, sy + (64 - dh), dw, dh);
     }
+}
+
+function drawChatBubble(x, y, text, startTime) {
+    const elapsed = Date.now() - startTime;
+    const opacity = Math.max(0, 1 - (elapsed - 3000) / 2000); // Empieza a desvanecerse a los 3s
+    if (opacity <= 0) return;
+
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    ctx.font = '14px "Tiny5", sans-serif';
+    const metrics = ctx.measureText(text);
+    const padding = 8;
+    const bw = metrics.width + padding * 2;
+    const bh = 24;
+    const bx = x + 32 - bw / 2;
+    const by = y - bh;
+
+    // Fondo bocadillo
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, bh, 5);
+    ctx.fill();
+
+    // Texto
+    ctx.fillStyle = "white";
+    ctx.textAlign = "left";
+    ctx.fillText(text, bx + padding, by + bh - 7);
+    ctx.restore();
 }
 
 function applyDayNightEffect() {

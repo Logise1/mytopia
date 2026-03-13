@@ -150,6 +150,7 @@ function enterHouse(baseIslandId) {
         multiplayer.players = {};
         multiplayer.lastSend = 0;
         sendMovement();
+        listenToIslandChat();
 
         // 3. Volver a aclarar (Desaparece el fade)
         if (fadeOverlay) {
@@ -182,6 +183,7 @@ function exitHouse() {
         multiplayer.players = {};
         multiplayer.lastSend = 0;
         sendMovement();
+        listenToIslandChat();
 
         // 3. Volver a aclarar
         if (fadeOverlay) {

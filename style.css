@@ -955,3 +955,130 @@ canvas {
     height: 100%;
     image-rendering: pixelated;
 }
+
+/* --- CHAT HUD --- */
+#chat-hud {
+    position: absolute;
+    bottom: 120px;
+    left: 20px;
+    width: 300px;
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+#chat-messages {
+    flex-grow: 1;
+    overflow-y: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.chat-msg {
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    width: fit-content;
+    max-width: 100%;
+    word-wrap: break-word;
+    animation: fadeOutMsg 10s forwards;
+}
+
+.chat-msg b {
+    color: #ffb58b;
+}
+
+#chat-input {
+    width: 100%;
+    background: rgba(93, 51, 80, 0.8);
+    border: 2px solid #ffb58b;
+    border-radius: 4px;
+    color: white;
+    padding: 8px;
+    font-family: inherit;
+    pointer-events: auto;
+    outline: none;
+}
+
+#chat-input:focus {
+    background: rgba(122, 67, 105, 0.9);
+}
+
+@keyframes fadeOutMsg {
+    0% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* --- ESTADO DE VOZ --- */
+#voice-status {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+#activate-voice-btn, #mute-voice-btn {
+    background: #5d3350;
+    color: #ffb58b;
+    border: 2px solid #ffb58b;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-family: inherit;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#activate-voice-btn:hover, #mute-voice-btn:hover {
+    background: #7a4369;
+}
+
+#voice-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 181, 139, 0.3);
+}
+
+#voice-waves {
+    width: 120px;
+    height: 40px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 4px;
+}
+
+#voice-indicator {
+    color: #4caf50;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+#voice-indicator.talking {
+    color: #fff;
+    text-shadow: 0 0 5px #4caf50;
+}
+
+#mute-voice-btn.muted {
+    background: #ad4054;
+    color: white;
+}
+
+@keyframes pulseVoice {
+    from { transform: scale(1); }
+    to { transform: scale(1.05); }
+}

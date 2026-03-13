@@ -175,6 +175,17 @@ async function loadAllAnimations() {
     loadPromises.push(loadFakerEnter(faker.enterAssets.enter2, 'sprites/monsters/faker/enter2.png', 'sprites/textures/enter2.png'));
     loadPromises.push(loadFakerEnter(faker.enterAssets.enter3, 'sprites/monsters/faker/enter3.png', 'sprites/textures/enter3.png'));
 
+    // Cargar Emote 2 (Absolute Cinema - estático)
+    await new Promise(resolve => {
+        const img = new Image();
+        img.src = `sprites/characters/emotes/2/1.png`;
+        img.onload = () => {
+            player.emote.frame2 = img;
+            resolve();
+        };
+        img.onerror = resolve;
+    });
+
     await Promise.all(loadPromises);
     getSkinAnimations(skinColor);
     getFakerSkinAnimations(skinColor);

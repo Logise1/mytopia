@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jacquard+12&family=Tiny5&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 
 <body>
@@ -248,6 +249,22 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Chat HUD -->
+        <div id="chat-hud">
+            <div id="chat-messages"></div>
+            <input type="text" id="chat-input" placeholder="Pulsa ENTER para chatear..." maxlength="100">
+        </div>
+        
+        <!-- Estado de Voz -->
+        <div id="voice-status">
+            <button id="activate-voice-btn">Activar Chat de Voz 🎤</button>
+            <div id="voice-controls" class="hidden">
+                <canvas id="voice-waves" width="100" height="30"></canvas>
+                <div id="voice-indicator">🎤 Voz: Activo</div>
+                <button id="mute-voice-btn">Mute</button>
+            </div>
+        </div>
     </div>
 
     </div> <!-- FIN DE game-container -->
@@ -262,7 +279,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, set, onValue, update, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update, onDisconnect, push, onChildAdded, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // Configuración exportada para game.js
@@ -292,6 +309,7 @@
     <script src="scripts/js/travel.js"></script>
     <script src="scripts/js/debug.js"></script>
     <script src="scripts/js/inventory.js"></script>
+    <script src="scripts/js/chat.js"></script>
     <script src="scripts/js/main.js"></script>
 </body>
 
