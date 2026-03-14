@@ -1,31 +1,23 @@
 // Inicialización
 window.onload = async () => {
-    // 1. Firebase primero
-    await initFirebase();
+    // 0. Ocultar todo el HUD y menus durante la intro
+    document.getElementById('auth-menu').style.display = 'none';
+    document.getElementById('coins-hud').style.display = 'none';
+    document.getElementById('minimap-container').style.display = 'none';
+    document.getElementById('inventory-hud').style.display = 'none';
+    document.getElementById('chat-hud').style.display = 'none';
+    document.getElementById('voice-status').style.display = 'none';
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) settingsBtn.style.display = 'none';
+
+    // El container se muestra a escala completa desde el inicio para la intro
+    container.classList.add('zoomed');
+
+    // 1. Firebase primero (en paralelo con assets si es posible)
+    const firebasePromise = initFirebase();
 
     // 2. Generar isla básica inicial
     generateIsland('home');
-
-    // 1. Iniciamos zoom-in
-    setTimeout(() => {
-        container.classList.add('zoomed');
-        // El skinMenu y el gameState = 'customizing' ahora ocurren DESPUÉS del login
-    }, 500);
-
-    // 2. Cargar Assets
-    await Promise.all([
-        loadAllAnimations(),
-        loadHUDAssets(),
-        loadTileAssets(),
-        loadFurnitureAssets(),
-        loadAudioAssets()
-    ]);
-
-    // Posicionar jugador en el centro de la isla
-    player.x = (mapSize / 2) * 64;
-    player.y = (mapSize / 2) * 64;
-
-    document.getElementById('coin-count').innerText = coinCount;
 
     // 3. Listeners
     window.addEventListener('keydown', e => keys[e.code] = true);
@@ -37,34 +29,55 @@ window.onload = async () => {
         mouseY = e.clientY - rect.top;
     });
 
-    // 4. Game loop
+    // 4. Game loop (empieza mostrando loading screen)
     if (minimapCanvas) {
         minimapCanvas.width = 160;
         minimapCanvas.height = 160;
     }
+    gameState = 'intro';
+    intro.phase = 'loading';
     requestAnimationFrame(gameLoop);
 
-    // 5. Configuración de Sliders de Volumen
+    // 5. Cargar Assets (la pantalla de carga se dibuja durante esto)
+    await Promise.all([
+        loadAllAnimations(),
+        loadHUDAssets(),
+        loadTileAssets(),
+        loadFurnitureAssets(),
+        loadAudioAssets(),
+        firebasePromise
+    ]);
+
+    // Posicionar jugador en el centro de la isla
+    player.x = (mapSize / 2) * 64;
+    player.y = (mapSize / 2) * 64;
+
+    document.getElementById('coin-count').innerText = coinCount;
+
+    // 6. Configuración de Sliders de Volumen
     const musicSlider = document.getElementById('music-volume-slider');
     const sfxSlider = document.getElementById('sfx-volume-slider');
 
     if (musicSlider) {
-        musicSlider.value = musicVolume; // Sincronizar con valor cargado
+        musicSlider.value = musicVolume;
         musicSlider.addEventListener('input', (e) => {
             musicVolume = parseFloat(e.target.value);
-            localStorage.setItem('musicVolume', musicVolume); // Guardar
+            localStorage.setItem('musicVolume', musicVolume);
             updateAllVolumes();
         });
     }
 
     if (sfxSlider) {
-        sfxSlider.value = sfxVolume; // Sincronizar con valor cargado
+        sfxSlider.value = sfxVolume;
         sfxSlider.addEventListener('input', (e) => {
             sfxVolume = parseFloat(e.target.value);
-            localStorage.setItem('sfxVolume', sfxVolume); // Guardar
+            localStorage.setItem('sfxVolume', sfxVolume);
             updateAllVolumes();
         });
     }
+
+    // 7. Assets cargados - iniciar cutscene
+    startIntroCutscene();
 };
 
 
@@ -72,6 +85,14 @@ function gameLoop(currentTime) {
     deltaTime = (currentTime - lastTime) / 1000;
     if (deltaTime > 0.1) deltaTime = 0.1;
     lastTime = currentTime;
+
+    // --- MODO INTRO ---
+    if (gameState === 'intro' && intro.phase !== 'done') {
+        updateIntro(deltaTime);
+        drawIntro();
+        requestAnimationFrame(gameLoop);
+        return;
+    }
 
     update(deltaTime);
 

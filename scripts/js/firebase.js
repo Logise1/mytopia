@@ -14,13 +14,22 @@ async function initFirebase() {
     fb.onAuthStateChanged(auth, async (user) => {
         if (user) {
             multiplayer.userId = user.uid;
-            // Si el nombre no está definido o es string vacío, intentamos sacar el principio del email
             let name = user.displayName;
             if (!name && user.email) name = user.email.split('@')[0];
             multiplayer.username = name || 'Jugador';
 
-            document.getElementById('auth-menu').classList.add('hidden');
-            document.getElementById('settings-btn').classList.remove('hidden');
+            // Solo mostrar UI si la intro ya terminó
+            if (typeof intro === 'undefined' || intro.phase === 'done') {
+                document.getElementById('auth-menu').style.display = '';
+                document.getElementById('auth-menu').classList.add('hidden');
+                document.getElementById('coins-hud').style.display = '';
+                document.getElementById('minimap-container').style.display = '';
+                document.getElementById('inventory-hud').style.display = '';
+                document.getElementById('chat-hud').style.display = '';
+                document.getElementById('voice-status').style.display = '';
+                document.getElementById('settings-btn').style.display = '';
+                document.getElementById('settings-btn').classList.remove('hidden');
+            }
 
             // Intentar recuperar el color guardado previamente
             let skinLoaded = false;
@@ -36,17 +45,23 @@ async function initFirebase() {
                 }
             } catch (e) { }
 
-            if (skinLoaded) {
-                skinMenu.classList.add('hidden');
-                gameState = 'playing';
-            } else {
-                skinMenu.classList.remove('hidden');
-                gameState = 'customizing';
+            // Solo cambiar gameState si la intro ya terminó
+            if (typeof intro === 'undefined' || intro.phase === 'done') {
+                if (skinLoaded) {
+                    skinMenu.classList.add('hidden');
+                    gameState = 'playing';
+                } else {
+                    skinMenu.classList.remove('hidden');
+                    gameState = 'customizing';
+                }
             }
             
             // Generar la isla actual usando la semilla del usuario o tipo correcto
-            multiplayer.currentIslandOwnerUid = user.uid; // Por defecto al loguear es nuestra casa
-            generateIsland(currentIsland);
+            multiplayer.currentIslandOwnerUid = user.uid;
+            // Solo regenerar si la intro ya terminó
+            if (typeof intro === 'undefined' || intro.phase === 'done') {
+                generateIsland(currentIsland);
+            }
 
             startSync();
             initSocial();
@@ -56,10 +71,13 @@ async function initFirebase() {
         } else {
             multiplayer.userId = null;
             multiplayer.username = "";
-            document.getElementById('auth-menu').classList.remove('hidden');
-            document.getElementById('settings-btn').classList.add('hidden');
-            document.getElementById('settings-menu').classList.add('hidden');
-            skinMenu.classList.add('hidden');
+            if (typeof intro === 'undefined' || intro.phase === 'done') {
+                document.getElementById('auth-menu').style.display = '';
+                document.getElementById('auth-menu').classList.remove('hidden');
+                document.getElementById('settings-btn').classList.add('hidden');
+                document.getElementById('settings-menu').classList.add('hidden');
+                skinMenu.classList.add('hidden');
+            }
             gameState = 'intro';
         }
     });

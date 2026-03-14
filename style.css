@@ -19,12 +19,10 @@ body {
     position: relative;
     width: 800px;
     height: 600px;
-    background-color: #222;
+    background-color: #000;
     overflow: hidden;
     border: 4px solid #444;
-    transition: transform 1.5s cubic-bezier(0.165, 0.84, 0.44, 1);
-    transform: scale(0.2);
-    /* Zoom inicial bajo */
+    transform: scale(1);
 }
 
 #game-container.zoomed {

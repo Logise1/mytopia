@@ -1,11 +1,29 @@
+function isVisible(x, y, margin) {
+    const z = camera.zoom || 1;
+    if (z === 1) return x > -margin && x < canvas.width + margin && y > -margin && y < canvas.height + margin;
+    const viewW = canvas.width / z;
+    const viewH = canvas.height / z;
+    const minX = canvas.width / 2 - viewW / 2 - margin;
+    const maxX = canvas.width / 2 + viewW / 2 + margin;
+    const minY = canvas.height / 2 - viewH / 2 - margin;
+    const maxY = canvas.height / 2 + viewH / 2 + margin;
+    return x > minX && x < maxX && y > minY && y < maxY;
+}
+
 function drawTiles() {
     ctx.imageSmoothingEnabled = false; // Asegurar píxeles nítidos en cada frame
     const tileSize = 64;
 
-    const startX = Math.floor(camera.x / tileSize);
-    const startY = Math.floor(camera.y / tileSize);
-    const endX = startX + Math.ceil(canvas.width / tileSize) + 1;
-    const endY = startY + Math.ceil(canvas.height / tileSize) + 1;
+    const z = camera.zoom || 1;
+    const viewW = canvas.width / z;
+    const viewH = canvas.height / z;
+    const camCenterX = camera.x + canvas.width / 2;
+    const camCenterY = camera.y + canvas.height / 2;
+
+    const startX = Math.floor((camCenterX - viewW / 2) / tileSize) - 1;
+    const startY = Math.floor((camCenterY - viewH / 2) / tileSize) - 1;
+    const endX = Math.ceil((camCenterX + viewW / 2) / tileSize) + 2;
+    const endY = Math.ceil((camCenterY + viewH / 2) / tileSize) + 2;
 
     for (let ty = startY; ty < endY; ty++) {
         for (let tx = startX; tx < endX; tx++) {
@@ -151,7 +169,7 @@ function drawTreeShadows() {
     treeData.forEach(tree => {
         const drawX = tree.x * tileSize - camera.x;
         const drawY = tree.y * tileSize - camera.y;
-        if (drawX > -tileSize * 6 && drawX < canvas.width + tileSize * 6 && drawY > -tileSize * 6 && drawY < canvas.height + tileSize * 6) {
+        if (isVisible(drawX, drawY, tileSize * 6)) {
             const treeW = tileSize * 2.5;
             const treeH = tileSize * 3.0;
             const baseX = drawX + treeHitbox.xRel;
@@ -188,7 +206,7 @@ function drawPalmtreeShadows() {
     palmtreeData.forEach(tree => {
         const drawX = tree.x * tileSize - camera.x;
         const drawY = tree.y * tileSize - camera.y;
-        if (drawX > -400 && drawX < canvas.width + 400 && drawY > -400 && drawY < canvas.height + 400) {
+        if (isVisible(drawX, drawY, 400)) {
             const dw = palmtreeAsset.naturalWidth * PIXEL_SCALE;
             const dh = palmtreeAsset.naturalHeight * PIXEL_SCALE;
             const baseX = drawX + palmtreeHitbox.xRel;
@@ -240,7 +258,7 @@ function drawPlayerShadows() {
     ctx.save();
     ctx.globalAlpha = sun.alpha;
     entities.forEach(ent => {
-        if (ent.screenX < -100 || ent.screenX > canvas.width + 100 || ent.screenY < -100 || ent.screenY > canvas.height + 100) return;
+        if (!isVisible(ent.screenX, ent.screenY, 100)) return;
         let frameData = null;
         if (ent.u_uid === 'faker') {
             if (faker.spawnState === 'enter1') frameData = { processed: faker.enterAssets.enter1Processed || faker.enterAssets.enter1 };
@@ -302,7 +320,7 @@ function drawSingleTree(tree, tileSize) {
     if (!tileAssets.isLoaded) return;
     const drawX = tree.x * tileSize - camera.x;
     const drawY = tree.y * tileSize - camera.y;
-    if (drawX > -tileSize * 4 && drawX < canvas.width + tileSize * 4 && drawY > -tileSize * 6 && drawY < canvas.height + tileSize * 4) {
+    if (isVisible(drawX, drawY, tileSize * 6)) {
         const treeW = treeAsset.naturalWidth * PIXEL_SCALE;
         const treeH = treeAsset.naturalHeight * PIXEL_SCALE;
         ctx.drawImage(treeAsset, Math.floor(drawX - (treeW - tileSize) / 2), Math.floor(drawY - (treeH - tileSize)), treeW, treeH);
@@ -313,7 +331,7 @@ function drawSinglePalmtree(tree, tileSize) {
     if (!palmtreeAsset.complete) return;
     const screenX = tree.x * tileSize - camera.x;
     const screenY = tree.y * tileSize - camera.y;
-    if (screenX < -512 || screenX > canvas.width + 512 || screenY < -512 || screenY > canvas.height + 512) return;
+    if (!isVisible(screenX, screenY, 512)) return;
     const drawW = palmtreeAsset.naturalWidth * PIXEL_SCALE;
     const drawH = palmtreeAsset.naturalHeight * PIXEL_SCALE;
     ctx.drawImage(palmtreeAsset, Math.floor(screenX - (drawW - tileSize) / 2), Math.floor(screenY - (drawH - tileSize)), drawW, drawH);
@@ -564,7 +582,7 @@ function drawSingleOtherPlayer(uid) {
         }
     }
 
-    if (sx < -100 || sx > canvas.width + 100 || sy < -100 || sy > canvas.height + 100) return;
+    if (!isVisible(sx, sy, 100)) return;
     
     ctx.save(); 
     ctx.font = '20px "Tiny5", sans-serif'; 
@@ -643,7 +661,7 @@ function drawFaker() {
     if (!faker.active || faker.spawnState === 'hidden') return;
     const sx = faker.x - camera.x;
     let sy = faker.y - camera.y;
-    if (sx < -200 || sx > canvas.width + 200 || sy < -200 || sy > canvas.height + 200) return;
+    if (!isVisible(sx, sy, 200)) return;
     let img = null;
     if (faker.spawnState.startsWith('enter')) img = faker.enterAssets[faker.spawnState + 'Processed'] || faker.enterAssets[faker.spawnState];
     else { const anim = getFakerSkinAnimations(skinColor)[faker.direction]; if (anim) img = anim[Math.floor(faker.frame)].processed || anim[Math.floor(faker.frame)].original; }
