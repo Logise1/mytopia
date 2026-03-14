@@ -426,27 +426,40 @@ function drawPlayer() {
         ctx.fillText("🎤", screenX + 32, screenY - 40);
         ctx.restore();
     }
+}
 
-    // --- BARRA DE STAMINA ---
-    if (player.stamina < player.maxStamina) {
-        const barW = 40;
-        const barH = 6;
-        const bx = screenX + (player.width - barW) / 2;
-        const by = screenY - 35; // Debajo del nombre pero encima de la cabeza
+function drawStaminaBar() {
+    if (player.stamina >= player.maxStamina) return;
 
-        // Fondo de la barra
-        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        ctx.fillRect(bx, by, barW, barH);
+    const screenX = player.x - camera.x;
+    const screenY = player.y - camera.y;
+    
+    // Offset visual si nos llevan
+    let visualY = screenY;
+    if (player.isBeingCarried) visualY -= 40;
 
-        // Progreso de stamina
-        const prog = player.stamina / player.maxStamina;
-        if (player.isExhausted) {
-            ctx.fillStyle = "#ff4444"; // Rojo si está agotado
-        } else {
-            ctx.fillStyle = player.isRunning ? "#ffcc00" : "#00ffcc"; // Amarillo al correr, Cyan al recuperar
-        }
-        ctx.fillRect(bx + 1, by + 1, (barW - 2) * prog, barH - 2);
+    const barW = 40;
+    const barH = 6;
+    const bx = screenX + (player.width - barW) / 2;
+    
+    // Altura dinámica: más alta solo si estamos cargando a alguien
+    const offsetHeight = player.carryingUid ? 75 : 35;
+    const by = visualY - offsetHeight;
+
+    // Fondo de la barra
+    ctx.save();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.fillRect(bx, by, barW, barH);
+
+    // Progreso de stamina
+    const prog = player.stamina / player.maxStamina;
+    if (player.isExhausted) {
+        ctx.fillStyle = "#ff4444"; 
+    } else {
+        ctx.fillStyle = player.isRunning ? "#ffcc00" : "#00ffcc";
     }
+    ctx.fillRect(bx + 1, by + 1, (barW - 2) * prog, barH - 2);
+    ctx.restore();
 }
 
 function drawHUD() {
@@ -742,7 +755,14 @@ function drawSign(x,y) { if (signAsset.complete) ctx.drawImage(signAsset, x, y, 
 function drawInteractionPrompt() {
     if (currentActionPrompt) {
         const sx = player.x-camera.x, sy = player.y-camera.y;
-        ctx.save(); ctx.font = '22px "Tiny5", sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = 'white'; ctx.fillText(currentActionPrompt, sx+32, sy-50); ctx.restore();
+        let promptText = currentActionPrompt;
+        // Show mobile-friendly prompts
+        if (typeof isMobile !== 'undefined' && isMobile) {
+            promptText = promptText.replace(/\[ENTER\/X\]/g, '✋');
+            promptText = promptText.replace(/\[R\]/g, '');
+            promptText = promptText.replace(/Haz click/g, 'Toca');
+        }
+        ctx.save(); ctx.font = '22px "Tiny5", sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = 'white'; ctx.fillText(promptText, sx+32, sy-50); ctx.restore();
     }
 }
 

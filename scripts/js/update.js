@@ -223,9 +223,14 @@ function update(dt) {
         currentAcceleration *= 0.6;
     }
 
-    // Si estás SIENDO cargado, te mueves con el que te carga (lógica en sync de firebase) 
-    // y no puedes usar tus propios controles
-    if (player.isBeingCarried) {
+    // Si estás SIENDO cargado, te mueves con el que te carga (lógica de sync) 
+    // Usamos la posición ya interpolada (lerp) del otro jugador para que no haya ghosting
+    if (player.isBeingCarried && player.carriedByUid) {
+        const carrier = multiplayer.players[player.carriedByUid];
+        if (carrier) {
+            player.x = carrier.x;
+            player.y = carrier.y;
+        }
         ax = 0; ay = 0;
         inputMoving = false;
     }

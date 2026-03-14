@@ -1089,3 +1089,400 @@ canvas {
     from { transform: scale(1); }
     to { transform: scale(1.05); }
 }
+
+/* ============================================ */
+/* MOBILE CONTROLS                              */
+/* ============================================ */
+
+/* --- MOBILE MODE BASE --- */
+body.mobile-mode {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+body.mobile-mode #game-container {
+    width: 100vw !important;
+    height: 100vh !important;
+    border: none !important;
+    border-radius: 0 !important;
+    transform: none !important;
+}
+
+body.mobile-mode #game-container.zoomed {
+    transform: none !important;
+}
+
+/* --- MOBILE CONTROLS CONTAINER --- */
+#mobile-controls {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5000;
+}
+
+/* --- JOYSTICK ZONE (left 40% of screen) --- */
+#joystick-zone {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 45%;
+    height: 55%;
+    pointer-events: auto;
+    z-index: 5001;
+}
+
+#joystick-base {
+    position: absolute;
+    width: 130px;
+    height: 130px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%,
+        rgba(255, 255, 255, 0.15) 0%,
+        rgba(255, 181, 139, 0.12) 50%,
+        rgba(93, 51, 80, 0.2) 100%);
+    border: 3px solid rgba(255, 181, 139, 0.35);
+    box-shadow:
+        0 0 20px rgba(255, 181, 139, 0.1),
+        inset 0 0 30px rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 0.4;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+#joystick-stick {
+    position: absolute;
+    width: 52px;
+    height: 52px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%,
+        rgba(255, 181, 139, 0.9) 0%,
+        rgba(93, 51, 80, 0.85) 80%);
+    border: 2px solid rgba(255, 181, 139, 0.6);
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.4),
+        inset 0 -2px 6px rgba(0, 0, 0, 0.2),
+        inset 0 2px 6px rgba(255, 255, 255, 0.2),
+        0 0 12px rgba(255, 181, 139, 0.15);
+    transition: left 0.05s ease-out, top 0.05s ease-out;
+}
+
+/* --- ACTION BUTTONS (right side) --- */
+#mobile-buttons {
+    position: absolute;
+    right: 15px;
+    bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+    pointer-events: auto;
+    z-index: 5002;
+}
+
+.mobile-btn {
+    border: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    font-family: "Tiny5", sans-serif;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.mobile-btn.pressed {
+    transform: scale(0.88) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Action Button (Enter/X) */
+.action-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%,
+        rgba(255, 181, 139, 0.95) 0%,
+        rgba(93, 51, 80, 0.9) 100%);
+    border: 3px solid rgba(255, 181, 139, 0.7) !important;
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.4),
+        inset 0 2px 6px rgba(255, 255, 255, 0.2),
+        0 0 15px rgba(255, 181, 139, 0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.action-btn .btn-icon {
+    font-size: 28px;
+    line-height: 1;
+}
+
+.action-btn .btn-label {
+    font-size: 10px;
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    letter-spacing: 0.5px;
+}
+
+/* Sprint Button */
+.sprint-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%,
+        rgba(255, 215, 0, 0.85) 0%,
+        rgba(255, 140, 0, 0.8) 100%);
+    border: 3px solid rgba(255, 215, 0, 0.6) !important;
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.3),
+        inset 0 2px 6px rgba(255, 255, 255, 0.2),
+        0 0 12px rgba(255, 215, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.sprint-btn .btn-icon {
+    font-size: 22px;
+    line-height: 1;
+}
+
+.sprint-btn .btn-label {
+    font-size: 9px;
+    color: #5d3350;
+    font-weight: bold;
+    text-shadow: none;
+}
+
+/* Emote Buttons Row */
+#mobile-emote-row {
+    display: flex;
+    gap: 10px;
+}
+
+.emote-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(93, 51, 80, 0.7);
+    border: 2px solid rgba(255, 181, 139, 0.5) !important;
+    box-shadow:
+        0 3px 10px rgba(0, 0, 0, 0.3),
+        inset 0 1px 4px rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- TOP BAR BUTTONS --- */
+#mobile-top-buttons {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    pointer-events: auto;
+    z-index: 5003;
+}
+
+.mobile-top-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: rgba(93, 51, 80, 0.75);
+    border: 2px solid rgba(255, 181, 139, 0.4);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.1s ease;
+}
+
+.mobile-top-btn:active {
+    transform: scale(0.9);
+}
+
+/* --- MOBILE LAYOUT ADJUSTMENTS --- */
+body.mobile-mode #minimap-container {
+    width: 100px;
+    height: 100px;
+    top: 8px;
+    right: 8px;
+}
+
+body.mobile-mode #coins-hud {
+    font-size: 24px;
+    top: 10px;
+    left: 10px;
+}
+
+body.mobile-mode .coin-icon {
+    width: 28px;
+    height: 28px;
+}
+
+body.mobile-mode #chat-hud {
+    bottom: auto;
+    top: 55px;
+    width: 60%;
+    height: 100px;
+    left: 15px;
+    transform: none;
+}
+
+body.mobile-mode #chat-input {
+    font-size: 16px; /* Prevent iOS zoom on focus */
+    padding: 10px;
+}
+
+body.mobile-mode #voice-status {
+    top: auto;
+    bottom: 140px;
+    right: 100px;
+}
+
+body.mobile-mode #settings-btn {
+    display: none;
+}
+
+body.mobile-mode #inventory-hud {
+    display: none;
+}
+
+body.mobile-mode #social-menu {
+    top: 55px;
+    left: 10px;
+    width: 180px;
+    max-height: 250px;
+    font-size: 12px;
+}
+
+body.mobile-mode #skin-menu,
+body.mobile-mode #house-menu,
+body.mobile-mode #furniture-color-menu,
+body.mobile-mode #settings-menu {
+    right: 10px;
+    width: 260px;
+    height: 400px;
+    padding: 40px 25px;
+}
+
+body.mobile-mode #auth-menu {
+    width: 90vw;
+    max-width: 340px;
+}
+
+body.mobile-mode #auth-tablon {
+    padding: 30px 20px;
+}
+
+body.mobile-mode #auth-tablon h2 {
+    font-size: 28px;
+}
+
+body.mobile-mode #furniture-editor {
+    width: 90%;
+    max-width: 500px;
+    bottom: 80px;
+}
+
+body.mobile-mode #travel-menu {
+    width: 95vw;
+    height: auto;
+    max-height: 90vh;
+    padding: 20px;
+}
+
+body.mobile-mode #travel-menu::before {
+    width: 400px;
+    height: 550px;
+}
+
+body.mobile-mode .travel-flex {
+    flex-direction: column;
+}
+
+body.mobile-mode .travel-info-overlay {
+    position: relative;
+    width: 100%;
+    left: 0;
+    bottom: 0;
+}
+
+body.mobile-mode .travel-news-frame {
+    width: 100%;
+    height: 250px;
+    border-left: none;
+    border-top: 4px solid #5d3350;
+}
+
+/* Prevent selection / callouts on mobile */
+body.mobile-mode * {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Allow text input interaction */
+body.mobile-mode input[type="text"],
+body.mobile-mode input[type="password"],
+body.mobile-mode input[type="range"],
+body.mobile-mode textarea {
+    -webkit-user-select: auto;
+    user-select: auto;
+}
+
+/* Landscape orientation lock hint */
+@media screen and (orientation: portrait) {
+    body.mobile-mode::after {
+        content: "📱 Gira tu dispositivo para mejor experiencia";
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: rgba(93, 51, 80, 0.95);
+        color: #ffb58b;
+        text-align: center;
+        padding: 8px;
+        font-family: "Tiny5", sans-serif;
+        font-size: 14px;
+        z-index: 99999;
+        animation: fadeInOut 5s ease-in-out forwards;
+    }
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(20px); }
+    15% { opacity: 1; transform: translateY(0); }
+    75% { opacity: 1; }
+    100% { opacity: 0; pointer-events: none; }
+}

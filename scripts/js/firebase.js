@@ -217,14 +217,9 @@ function startSync() {
                 multiplayer.players[uid].carryingUid = pData.carryingUid || null; // Sincronizar quién lleva a quién
                 handleVoiceP2P(uid, pData);
 
-                // Lógica de "Ser cargado"
                 if (pData.carryingUid === multiplayer.userId) {
                     player.isBeingCarried = true;
                     player.carriedByUid = uid;
-                    // Forzar posición a la del carrier (con un pequeño offset visual manejado en renderer si se prefiere,
-                    // pero aquí aseguramos que el "físico" le siga para que no haya ghosting)
-                    player.x = pData.x;
-                    player.y = pData.y;
                 } else if (player.carriedByUid === uid) {
                     // Si este jugador me estaba cargando pero ya no lo hace
                     player.isBeingCarried = false;

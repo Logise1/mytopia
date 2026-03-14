@@ -213,6 +213,7 @@ function gameLoop(currentTime) {
     applyDayNightEffect();
     applyChromaticAberration();
     drawHUD();
+    drawStaminaBar();
     drawInteractionPrompt();
     drawMinimap();
     if (window.updateCharacterPreview) window.updateCharacterPreview();
