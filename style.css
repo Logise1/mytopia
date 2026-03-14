@@ -227,7 +227,7 @@ canvas {
 #settings-btn {
     position: absolute;
     top: 20px;
-    right: 20px;
+    right: 180px; /* Movido a la izquierda del minimapa */
     background-color: #5d3350;
     color: #ffb58b;
     border: none;
@@ -237,7 +237,7 @@ canvas {
     cursor: pointer;
     text-transform: uppercase;
     font-size: 14px;
-    z-index: 300;
+    z-index: 1300; /* Subido para que esté por encima del minimapa si solapan, aunque ahora no lo hacen */
 }
 
 #settings-btn:hover {
@@ -959,10 +959,11 @@ canvas {
 /* --- CHAT HUD --- */
 #chat-hud {
     position: absolute;
-    bottom: 120px;
-    left: 20px;
-    width: 300px;
-    height: 200px;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 400px; /* Un poco más ancho para que se vea mejor centrado */
+    height: 150px;
     display: flex;
     flex-direction: column;
     pointer-events: none;
@@ -1020,8 +1021,8 @@ canvas {
 /* --- ESTADO DE VOZ --- */
 #voice-status {
     position: absolute;
-    bottom: 20px;
-    right: 30px;
+    top: 180px; /* Debajo del minimapa (10px top + 160px height + 10px gap) */
+    right: 10px;
     z-index: 3100;
     display: flex;
     flex-direction: column;

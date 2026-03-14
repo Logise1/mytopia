@@ -219,9 +219,12 @@ function startSync() {
                 
                 // Audio perfecto sincronizado
                 if (!wasEmoting && pData.emoteActive) {
-                    // Iniciar audio
+                    // Iniciar audio dinámico según el tipo de emote
+                    const soundPath = `sprites/characters/emotes/${pData.emoteType || 1}/1.wav`;
                     if (!multiplayer.players[uid].activeAudio) {
-                        multiplayer.players[uid].activeAudio = new Audio('sprites/characters/emotes/1/1.wav');
+                        multiplayer.players[uid].activeAudio = new Audio(soundPath);
+                    } else {
+                        multiplayer.players[uid].activeAudio.src = soundPath;
                     }
                     multiplayer.players[uid].activeAudio.volume = sfxVolume;
                     multiplayer.players[uid].activeAudio.currentTime = 0;

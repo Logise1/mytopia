@@ -212,6 +212,7 @@ const audioAssets = {
     takeoffPlane: new Audio('sfx/takeoffplane.mp3'),
     landPlane: new Audio('sfx/landplane.mp3'),
     emoteAudio: new Audio('sprites/characters/emotes/1/1.wav'),
+    cinemaAudio: new Audio('sprites/characters/emotes/2/1.wav'),
     chaseTimer: 0,
     chaseDelay: 10 + Math.random() * 5, // 10-15s
     ambienceTimer: 0,
@@ -236,7 +237,8 @@ function updateAllVolumes() {
     audioAssets.exitHome.volume = sfxVolume;
     audioAssets.takeoffPlane.volume = sfxVolume;
     audioAssets.landPlane.volume = sfxVolume;
-    audioAssets.emoteAudio.volume = sfxVolume; // Ahora es SFX
+    audioAssets.emoteAudio.volume = sfxVolume; 
+    audioAssets.cinemaAudio.volume = sfxVolume; // Ahora es SFX
 }
 
 const emoteFrames = { 1: [] }; // Frames originales de los emotes

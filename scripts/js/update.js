@@ -169,6 +169,11 @@ function update(dt) {
         player.emote.type = 2; // Tipo 2 para Absolute Cinema
         player.emote.customDuration = 3.0; // 3 segundos
         multiplayer.lastSend = 0;
+
+        if (audioAssets.cinemaAudio) {
+            audioAssets.cinemaAudio.currentTime = 0;
+            audioAssets.cinemaAudio.play().catch(e => console.log("Audio cinema error:", e));
+        }
     }
 
     if (player.emote.active) {
@@ -194,13 +199,16 @@ function update(dt) {
             player.emote.active = false;
         }
         
-        // Si el jugador se mueve, cancelamos el emote
         if (inputMoving) {
             player.emote.active = false;
             // Parar sonido si se cancela
             if (audioAssets.emoteAudio) {
                 audioAssets.emoteAudio.pause();
                 audioAssets.emoteAudio.currentTime = 0;
+            }
+            if (audioAssets.cinemaAudio) {
+                audioAssets.cinemaAudio.pause();
+                audioAssets.cinemaAudio.currentTime = 0;
             }
             multiplayer.lastSend = 0; // Envío inmediato al cancelar
         }
