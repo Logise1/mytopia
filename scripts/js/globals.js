@@ -99,7 +99,12 @@ const player = {
         timer: 0,
         duration: 0.1, // Sincronizado a 0.1s entre frames
         frames: [] // Aquí se guardarán los sprites coloreados
-    }
+    },
+    stamina: 100,
+    maxStamina: 100,
+    staminaRegen: 20, // por segundo
+    staminaCost: 35, // por segundo al correr
+    isRunning: false
 };
 
 // Monstruo Faker

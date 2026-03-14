@@ -126,25 +126,49 @@ function update(dt) {
     else if (player.emote.active && player.emote.type === 1) multiplayer.status = "Haciendo un baile...";
     else multiplayer.status = "Descansando en " + currentIsland;
 
-    // Aplicar aceleración basada en inputs
-    if (keys['KeyW'] || keys['ArrowUp']) {
-        ay = -player.speed;
-        player.direction = 'up';
-        inputMoving = true;
-    } else if (keys['KeyS'] || keys['ArrowDown']) {
-        ay = player.speed;
-        player.direction = 'forward';
+    // --- LÓGICA DE INPUTS Y MOVIMIENTO ---
+    // Determinar si hay intención de movimiento antes de la lógica de stamina
+    if (keys['KeyW'] || keys['ArrowUp'] || keys['KeyS'] || keys['ArrowDown'] || 
+        keys['KeyA'] || keys['ArrowLeft'] || keys['KeyD'] || keys['ArrowRight']) {
         inputMoving = true;
     }
 
+    // --- LÓGICA DE CORRER (STAMINA) ---
+    const isControlPressed = keys['ControlLeft'] || keys['ControlRight'];
+    player.isRunning = isControlPressed && player.stamina > 0 && inputMoving;
+
+    if (player.isRunning) {
+        player.stamina -= player.staminaCost * dt;
+        if (player.stamina < 0) {
+            player.stamina = 0;
+            player.isRunning = false;
+        }
+    } else {
+        if (player.stamina < player.maxStamina) {
+            player.stamina += player.staminaRegen * dt;
+            if (player.stamina > player.maxStamina) player.stamina = player.maxStamina;
+        }
+    }
+
+    // Ajustar velocidad basada en si está corriendo
+    const currentMaxSpeed = player.isRunning ? 800 : 500;
+    const currentAcceleration = player.isRunning ? 2800 : 1800;
+    
+    // Aplicar aceleración basada en inputs
+    if (keys['KeyW'] || keys['ArrowUp']) {
+        ay = -currentAcceleration;
+        player.direction = 'up';
+    } else if (keys['KeyS'] || keys['ArrowDown']) {
+        ay = currentAcceleration;
+        player.direction = 'forward';
+    }
+
     if (keys['KeyA'] || keys['ArrowLeft']) {
-        ax = -player.speed;
+        ax = -currentAcceleration;
         player.direction = 'left';
-        inputMoving = true;
     } else if (keys['KeyD'] || keys['ArrowRight']) {
-        ax = player.speed;
+        ax = currentAcceleration;
         player.direction = 'right';
-        inputMoving = true;
     }
 
     // --- LÓGICA DE EMOTES ---
@@ -255,8 +279,8 @@ function update(dt) {
 
     // Limitar velocidad máxima
     const currentSpeed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-    if (currentSpeed > player.maxSpeed) {
-        const ratio = player.maxSpeed / currentSpeed;
+    if (currentSpeed > currentMaxSpeed) {
+        const ratio = currentMaxSpeed / currentSpeed;
         player.vx *= ratio;
         player.vy *= ratio;
     }

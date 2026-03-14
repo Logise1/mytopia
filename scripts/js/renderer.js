@@ -425,6 +425,23 @@ function drawPlayer() {
         ctx.fillText("🎤", screenX + 32, screenY - 40);
         ctx.restore();
     }
+
+    // --- BARRA DE STAMINA ---
+    if (player.stamina < player.maxStamina) {
+        const barW = 40;
+        const barH = 6;
+        const bx = screenX + (player.width - barW) / 2;
+        const by = screenY - 35; // Debajo del nombre pero encima de la cabeza
+
+        // Fondo de la barra
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.fillRect(bx, by, barW, barH);
+
+        // Progreso de stamina
+        const prog = player.stamina / player.maxStamina;
+        ctx.fillStyle = player.isRunning ? "#ffcc00" : "#00ffcc"; // Amarillo al correr, Cyan al recuperar
+        ctx.fillRect(bx + 1, by + 1, (barW - 2) * prog, barH - 2);
+    }
 }
 
 function drawHUD() {
