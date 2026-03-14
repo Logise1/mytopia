@@ -119,7 +119,12 @@ function update(dt) {
 
     // Actualizar estado social dinámico
     if (isTraveling) multiplayer.status = "Viajando en avión...";
-    else if (player.emote.active && player.emote.type === 2) multiplayer.status = "Absolute Cinema";
+    else if (player.carryingUid) {
+        const target = multiplayer.players[player.carryingUid];
+        multiplayer.status = `Cargando a ${target ? target.username : 'alguien'}...`;
+    } else if (player.isBeingCarried) {
+        multiplayer.status = "¡Me llevan en hombros!";
+    } else if (player.emote.active && player.emote.type === 2) multiplayer.status = "Absolute Cinema";
     else if (currentIsland.includes('_inside')) multiplayer.status = "En casa";
     else if (faker.active && faker.spawnState === 'chasing') multiplayer.status = "¡Huyendo del Faker!";
     else if (player.isMoving) multiplayer.status = "Caminando por " + currentIsland;
@@ -135,24 +140,95 @@ function update(dt) {
 
     // --- LÓGICA DE CORRER (STAMINA) ---
     const isControlPressed = keys['ControlLeft'] || keys['ControlRight'];
-    player.isRunning = isControlPressed && player.stamina > 0 && inputMoving;
+    
+    // Solo puede correr si no está agotado
+    player.isRunning = isControlPressed && player.stamina > 0 && inputMoving && !player.isExhausted;
 
     if (player.isRunning) {
         player.stamina -= player.staminaCost * dt;
-        if (player.stamina < 0) {
+        if (player.stamina <= 0) {
             player.stamina = 0;
             player.isRunning = false;
+            player.isExhausted = true; // Agotamiento al llegar a 0
         }
     } else {
         if (player.stamina < player.maxStamina) {
             player.stamina += player.staminaRegen * dt;
             if (player.stamina > player.maxStamina) player.stamina = player.maxStamina;
+            
+            // Deja de estar agotado cuando recupera un poco de aire (e.g. 25%)
+            if (player.isExhausted && player.stamina >= 25) {
+                player.isExhausted = false;
+            }
         }
     }
 
-    // Ajustar velocidad basada en si está corriendo
-    const currentMaxSpeed = player.isRunning ? 800 : 500;
-    const currentAcceleration = player.isRunning ? 2800 : 1800;
+    // Ajustar velocidad basada en si está corriendo o agotado
+    let currentMaxSpeed = 500;
+    let currentAcceleration = 1800;
+
+    if (player.isRunning) {
+        currentMaxSpeed = 800;
+        currentAcceleration = 2800;
+    } else if (player.isExhausted) {
+        currentMaxSpeed = 250; // Velocidad reducida a la mitad por agotamiento
+        currentAcceleration = 1000;
+    }
+
+    // --- LÓGICA DE CARGAR JUGADORES ---
+    const isEnterPressed = (keys['Enter'] || keys['NumpadEnter']) && !document.getElementById('chat-input').matches(':focus');
+    
+    // Solo podemos empezar a cargar si no estamos agotados, ni siendo cargados, ni en cooldown
+    if (isEnterPressed && !player.isBeingCarried && !player.carryCooldown && player.stamina > 0) {
+        if (!player.carryingUid) {
+            // Buscar jugador más cercano
+            let nearestId = null;
+            let minDist = 80; // Rango para coger (un poco más de una tile)
+            for (let uid in multiplayer.players) {
+                const p = multiplayer.players[uid];
+                const d = Math.hypot(p.x - player.x, p.y - player.y);
+                if (d < minDist) {
+                    minDist = d;
+                    nearestId = uid;
+                }
+            }
+            if (nearestId) {
+                player.carryingUid = nearestId;
+                multiplayer.lastSend = 0; // Sincronizar inmediatamente
+            }
+        }
+    } else {
+        if (player.carryingUid) {
+            player.carryingUid = null;
+            player.carryCooldown = true; // No poder coger hasta recuperar 100%
+            multiplayer.lastSend = 0;
+        }
+    }
+
+    // Salir de cooldown al llegar al 100%
+    if (player.carryCooldown && player.stamina >= player.maxStamina) {
+        player.carryCooldown = false;
+    }
+
+    if (player.carryingUid) {
+        player.stamina -= player.staminaCost * 1.2 * dt; // Consume estamina al cargar
+        if (player.stamina <= 0) {
+            player.stamina = 0;
+            player.carryingUid = null;
+            player.carryCooldown = true;
+            multiplayer.lastSend = 0;
+        }
+        // Penalización de velocidad por carga
+        currentMaxSpeed *= 0.6;
+        currentAcceleration *= 0.6;
+    }
+
+    // Si estás SIENDO cargado, te mueves con el que te carga (lógica en sync de firebase) 
+    // y no puedes usar tus propios controles
+    if (player.isBeingCarried) {
+        ax = 0; ay = 0;
+        inputMoving = false;
+    }
     
     // Aplicar aceleración basada en inputs
     if (keys['KeyW'] || keys['ArrowUp']) {

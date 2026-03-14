@@ -104,7 +104,12 @@ const player = {
     maxStamina: 100,
     staminaRegen: 20, // por segundo
     staminaCost: 35, // por segundo al correr
-    isRunning: false
+    isRunning: false,
+    isExhausted: false,
+    carryingUid: null,
+    isBeingCarried: false,
+    carriedByUid: null,
+    carryCooldown: false // Bloquea coger a alguien hasta que esté al 100%
 };
 
 // Monstruo Faker

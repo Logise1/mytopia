@@ -348,7 +348,8 @@ function drawPlayer() {
     const drawW = baseWidth * scaleX;
     const drawH = baseHeight * scaleY;
     const drawX = screenX + (player.width - drawW) / 2;
-    const drawY = screenY + (player.height - drawH) + jumpOffset;
+    let drawY = screenY + (player.height - drawH) + jumpOffset;
+    if (player.isBeingCarried) drawY -= 40; // Offset visual si nos llevan
 
     if (player.emote && player.emote.active) {
         let eFrame = null;
@@ -439,7 +440,11 @@ function drawPlayer() {
 
         // Progreso de stamina
         const prog = player.stamina / player.maxStamina;
-        ctx.fillStyle = player.isRunning ? "#ffcc00" : "#00ffcc"; // Amarillo al correr, Cyan al recuperar
+        if (player.isExhausted) {
+            ctx.fillStyle = "#ff4444"; // Rojo si está agotado
+        } else {
+            ctx.fillStyle = player.isRunning ? "#ffcc00" : "#00ffcc"; // Amarillo al correr, Cyan al recuperar
+        }
         ctx.fillRect(bx + 1, by + 1, (barW - 2) * prog, barH - 2);
     }
 }
@@ -526,7 +531,26 @@ function drawSinglePupil(ex, ey, pSize) {
 
 function drawSingleOtherPlayer(uid) {
     const p = multiplayer.players[uid];
-    const sx = p.x - camera.x, sy = p.y - camera.y;
+    
+    let sx = p.x - camera.x;
+    let sy = p.y - camera.y;
+
+    // --- LÓGICA VISUAL DE CARGA ---
+    // Si yo lo llevo a él
+    if (player.carryingUid === uid) {
+        sx = player.x - camera.x;
+        sy = player.y - camera.y - 40;
+    } else {
+        // Si alguien más lo lleva a él
+        for (let otherUid in multiplayer.players) {
+            if (multiplayer.players[otherUid].carryingUid === uid) {
+                sx = multiplayer.players[otherUid].x - camera.x;
+                sy = multiplayer.players[otherUid].y - camera.y - 40;
+                break;
+            }
+        }
+    }
+
     if (sx < -100 || sx > canvas.width + 100 || sy < -100 || sy > canvas.height + 100) return;
     
     ctx.save(); 

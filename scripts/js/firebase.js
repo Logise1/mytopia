@@ -212,10 +212,24 @@ function startSync() {
                 multiplayer.players[uid].emoteFrame = pData.emoteFrame || 0;
                 multiplayer.players[uid].emoteType = pData.emoteType || 1;
                 
-                // Chat y Voz
                 multiplayer.players[uid].peerId = pData.peerId || null;
                 multiplayer.players[uid].isTalking = pData.isTalking || false;
+                multiplayer.players[uid].carryingUid = pData.carryingUid || null; // Sincronizar quién lleva a quién
                 handleVoiceP2P(uid, pData);
+
+                // Lógica de "Ser cargado"
+                if (pData.carryingUid === multiplayer.userId) {
+                    player.isBeingCarried = true;
+                    player.carriedByUid = uid;
+                    // Forzar posición a la del carrier (con un pequeño offset visual manejado en renderer si se prefiere,
+                    // pero aquí aseguramos que el "físico" le siga para que no haya ghosting)
+                    player.x = pData.x;
+                    player.y = pData.y;
+                } else if (player.carriedByUid === uid) {
+                    // Si este jugador me estaba cargando pero ya no lo hace
+                    player.isBeingCarried = false;
+                    player.carriedByUid = null;
+                }
                 
                 // Audio perfecto sincronizado
                 if (!wasEmoting && pData.emoteActive) {
@@ -284,7 +298,8 @@ function sendMovement() {
         emoteFrame: player.emote.frame || 0,
         emoteType: player.emote.type || 1,
         peerId: multiplayer.peerId || null,
-        isTalking: player.isTalking || false
+        isTalking: player.isTalking || false,
+        carryingUid: player.carryingUid || null
     });
 }
 
