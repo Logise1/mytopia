@@ -744,63 +744,6 @@ canvas {
     color: #5d3350;
 }
 
-/* --- MENÚ DE INVENTARIO --- */
-#inventory-menu {
-    position: absolute;
-    top: -650px; /* Mas arriba para asegurar que oculte bien */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 720px;
-    height: 520px;
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(12px);
-    border: 4px solid #fff;
-    border-radius: 24px;
-    z-index: 2000;
-    transition: top 0.6s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.3s;
-    padding: 30px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-    display: flex;
-    flex-direction: column;
-    opacity: 0;
-}
-
-#inventory-menu:not(.hidden) {
-    top: 40px;
-    opacity: 1;
-}
-
-.inventory-layout {
-    display: flex;
-    gap: 30px;
-    height: 100%;
-}
-
-.inventory-left {
-    flex: 1.2;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.inventory-right {
-    flex: 0.8;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.inventory-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(4, 1fr);
-    gap: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 20px;
-    border-radius: 16px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    flex-grow: 1;
-}
 
 .inventory-hotbar {
     display: grid;
@@ -813,125 +756,38 @@ canvas {
 }
 
 .inv-slot {
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.4);
-    border-radius: 8px;
-    aspect-ratio: 1;
-    cursor: pointer;
-    transition: all 0.2s;
+    background: #8b8b8b;
+    border: 2px solid #373737;
+    border-bottom-color: #fff;
+    border-right-color: #fff;
+    width: 64px;
+    height: 64px;
+    image-rendering: pixelated;
     display: flex;
     align-items: center;
     justify-content: center;
-    image-rendering: pixelated;
+    cursor: pointer;
+    box-sizing: border-box;
 }
 
 .inv-slot:hover {
-    background: rgba(255, 255, 255, 0.25);
-    border-color: #fff;
-    transform: translateY(-2px);
+    background: #c6c6c6;
+    outline: 2px solid #fff;
+    z-index: 10;
 }
 
-.character-preview-box {
-    background: rgba(0, 0, 0, 0.2);
-    border: 3px solid #fff;
-    border-radius: 16px;
-    height: 280px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    padding: 20px;
+.inv-slot.equipped {
+    border: 2px solid #fff;
+    border-bottom-color: #373737;
+    border-right-color: #373737;
+    background: #d0d0d0;
+}
+.inv-slot img {
+    width: 80%;
+    height: 80%;
+    object-fit: contain;
 }
 
-#character-preview-canvas {
-    image-rendering: pixelated;
-    width: 140px;
-    height: 140px;
-}
-
-#inventory-menu .char-name-tag {
-    margin-top: 10px;
-    font-size: 24px;
-    color: #fff;
-    font-family: "Jacquard 12", serif;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-}
-
-.mission-box {
-    background: #000;
-    border: 3px solid #fff;
-    border-radius: 12px;
-    padding: 15px;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.mission-label {
-    color: #ffb58b;
-    font-size: 14px;
-    margin-bottom: 5px;
-}
-
-.mission-text {
-    color: #ff0000;
-    font-size: 20px;
-    font-weight: bold;
-}
-
-/* Nubes decorativas */
-.inventory-clouds {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    pointer-events: none;
-}
-
-.inventory-clouds .cloud {
-    position: absolute;
-    width: 60px;
-    height: 35px;
-    background: #fff;
-    border-radius: 20px;
-    opacity: 0.95;
-    z-index: 2005;
-    filter: drop-shadow(0 4px 5px rgba(0,0,0,0.3));
-    animation: cloudFloat 4s ease-in-out infinite;
-}
-
-@keyframes cloudFloat {
-    0%, 100% { transform: translateY(0) scale(1.05); }
-    50% { transform: translateY(-5px) scale(1); }
-}
-
-.inventory-clouds .cloud::before,
-.inventory-clouds .cloud::after {
-    content: "";
-    position: absolute;
-    background: #fff;
-    border-radius: 50%;
-}
-
-.inventory-clouds .cloud::before {
-    width: 30px; height: 30px;
-    top: -15px; left: 10px;
-}
-
-.inventory-clouds .cloud::after {
-    width: 25px; height: 25px;
-    top: -10px; right: 8px;
-}
-
-.cloud.t-l { top: -15px; left: -20px; animation-delay: 0s; }
-.cloud.t-r { top: -15px; right: -20px; animation-delay: 1s; }
-.cloud.b-l { bottom: -15px; left: -20px; animation-delay: 2s; }
-.cloud.b-r { bottom: -15px; right: -20px; animation-delay: 0.5s; }
-
-.inv-slot::after {
-    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%);
-    pointer-events: none;
-}
 
 /* --- MINIMAPA --- */
 #minimap-container {
@@ -1086,6 +942,283 @@ canvas {
 @keyframes pulseVoice {
     from { transform: scale(1); }
     to { transform: scale(1.05); }
+}
+
+#inventory-menu {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 620px;
+    height: 480px;
+    background: #c6c6c6;
+    border: 4px solid #555;
+    border-top-color: #fff;
+    border-left-color: #fff;
+    image-rendering: pixelated;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    box-shadow: 0 0 0 4px #000, 0 20px 40px rgba(0,0,0,0.5);
+    color: #404040;
+    gap: 15px;
+}
+
+/* --- CABECERA INVENTARIO --- */
+.inventory-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.inventory-header h2 {
+    font-family: "Jacquard 12", serif;
+    font-size: 24px;
+    color: #404040;
+    margin: 0;
+    text-shadow: none;
+}
+
+#coin-display-inv {
+    font-size: 20px;
+    color: #555;
+    font-weight: bold;
+    background: #8b8b8b;
+    border: 2px solid #373737;
+    border-bottom-color: #fff;
+    border-right-color: #fff;
+    padding: 4px 12px;
+}
+
+.inventory-top {
+    display: flex;
+    gap: 20px;
+    height: 180px;
+    justify-content: center;
+}
+
+.inventory-bottom {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 4px;
+    background: #8b8b8b;
+    padding: 4px;
+    border: 2px solid #373737;
+    border-bottom-color: #fff;
+    border-right-color: #fff;
+    margin: auto;
+}
+
+
+.character-preview-box {
+    background: #8b8b8b;
+    border: 2px solid #373737;
+    border-bottom-color: #fff;
+    border-right-color: #fff;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 150px;
+    height: 150px;
+    flex-shrink: 0;
+}
+
+#character-preview-canvas {
+    image-rendering: pixelated;
+    width: 120px;
+    height: 120px;
+    display: block;
+}
+
+/* --- DETALLES DEL ITEM --- */
+/* --- DETALLES DEL ITEM --- */
+.item-details-box {
+    background: #8b8b8b;
+    border: 2px solid #373737;
+    border-bottom-color: #fff;
+    border-right-color: #fff;
+    padding: 10px;
+    flex-grow: 1;
+    color: #404040;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+}
+
+.item-details-box h3 {
+    font-size: 18px;
+    text-shadow: none;
+    margin: 0;
+}
+
+.item-details-box p {
+    font-size: 14px;
+    margin: 0;
+}
+
+.item-details-box .sell-btn {
+    background: #c6c6c6;
+    color: #404040;
+    border: 2px solid #555;
+    border-top-color: #fff;
+    border-left-color: #fff;
+    padding: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.item-details-box .sell-btn:active {
+    border: 2px solid #fff;
+    border-top-color: #555;
+    border-left-color: #555;
+}
+
+/* --- TIENDA --- */
+#shop-menu {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    background: rgba(255, 181, 139, 0.95);
+    border: 4px solid #5d3350;
+    border-radius: 16px;
+    padding: 20px;
+    z-index: 2500;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.shop-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #5d3350;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.shop-header h2 { font-family: "Jacquard 12", serif; color: #5d3350; }
+
+#close-shop-btn {
+    background: #ad4054;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 4px;
+}
+
+.shop-items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.shop-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(255, 255, 255, 0.3);
+    padding: 10px;
+    border-radius: 8px;
+    border: 2px solid #5d3350;
+}
+
+.shop-item img {
+    width: 64px;
+    height: 64px;
+    image-rendering: pixelated;
+    object-fit: contain;
+}
+
+.shop-item-info h3 { font-size: 18px; margin: 0; }
+.shop-item-info p { font-size: 14px; opacity: 0.8; margin-bottom: 5px; }
+
+.buy-btn {
+    background: #5d3350;
+    color: #ffb58b;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.buy-btn:hover { background: #7a4369; }
+
+/* --- FISHING UI --- */
+#fishing-ui {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 20px;
+    border-radius: 12px;
+    border: 3px solid #00f2ff;
+    color: white;
+    text-align: center;
+    z-index: 3000;
+}
+
+#fishing-status {
+    font-size: 24px;
+    font-family: "Jacquard 12", serif;
+    margin-bottom: 15px;
+    color: #00f2ff;
+    animation: flash 0.5s infinite;
+}
+
+@keyframes flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+#fishing-bar {
+    position: relative;
+    width: 100%;
+    height: 30px;
+    background: #444;
+    border: 2px solid white;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+#fishing-green-zone {
+    position: absolute;
+    height: 100%;
+    background: #4caf50;
+    box-shadow: 0 0 10px #4caf50;
+}
+
+#fishing-arrow {
+    position: absolute;
+    top: -5px;
+    font-size: 20px;
+    color: #ffcc00;
+    text-shadow: 0 0 5px black;
+    transition: left 0.05s linear;
+}
+
+#fishing-hint {
+    font-size: 14px;
+    opacity: 0.8;
 }
 
 /* ============================================ */

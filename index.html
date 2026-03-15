@@ -123,43 +123,56 @@
             </div>
         </div>
 
-        <!-- Menú de Inventario -->
+        <!-- Menú de Inventario Mejorado -->
         <div id="inventory-menu" class="hidden">
-            <div class="inventory-clouds">
-                <div class="cloud t-l"></div>
-                <div class="cloud t-r"></div>
-                <div class="cloud b-l"></div>
-                <div class="cloud b-r"></div>
+            <div class="inventory-header">
+                <h2>MOCHILA DE <span id="player-name-inv">JUGADOR</span></h2>
+                <div id="coin-display-inv">🪙 <span id="coin-count-inv">500</span></div>
             </div>
             
-            <div class="inventory-layout">
-                <div class="inventory-left">
-                    <div class="inventory-grid" id="main-inventory-grid">
-                        <!-- 12 slots -->
-                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
-                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
-                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
-                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
-                    </div>
-                    
-                    <div class="inventory-hotbar" id="inventory-hotbar">
-                        <!-- 5 slots -->
-                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
-                    </div>
+            <div class="inventory-top">
+                <div class="character-preview-box">
+                    <canvas id="character-preview-canvas" width="128" height="128"></canvas>
                 </div>
                 
-                <div class="inventory-right">
-                    <div class="character-preview-box">
-                        <canvas id="character-preview-canvas" width="128" height="128"></canvas>
-                        <div class="char-name-tag"></div>
-                    </div>
-                    
-                    <div class="mission-box">
-                        <span class="mission-label">ACTUAL MISSION:</span>
-                        <p class="mission-text">SURVIVE THE NIGHT</p>
+                <div id="item-details" class="item-details-box">
+                    <p class="empty-msg">Selecciona un objeto</p>
+                </div>
+            </div>
+
+            <div class="inventory-bottom">
+                <div class="inventory-grid" id="main-inventory-grid">
+                    <!-- slots filled via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Menú de Tienda -->
+        <div id="shop-menu" class="hidden">
+            <div class="shop-header">
+                <h2>TIENDA DE PESCA</h2>
+                <button id="close-shop-btn">X</button>
+            </div>
+            <div class="shop-items">
+                <div class="shop-item" data-id="rod">
+                    <img src="sprites/textures/fishing_rod_icon.png" alt="Caña">
+                    <div class="shop-item-info">
+                        <h3>Caña de Pescar</h3>
+                        <p>Para pescar en el borde de la isla</p>
+                        <button class="buy-btn" data-cost="200">200 🪙</button>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Minijuego de Pesca -->
+        <div id="fishing-ui" class="hidden">
+            <div id="fishing-status">¡ALGO HA PICADO!</div>
+            <div id="fishing-bar">
+                <div id="fishing-green-zone"></div>
+                <div id="fishing-arrow">▼</div>
+            </div>
+            <div id="fishing-hint">Pulsa ESPACIO cuando la flecha esté en lo VERDE</div>
         </div>
 
         <!-- Menú Social / Amigos -->

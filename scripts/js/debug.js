@@ -60,7 +60,10 @@ function createDebugPanel() {
 
     window.updateDebugValue = (key, val, label) => {
         const value = parseFloat(val);
-        if (key === 'debugTimeOffsetMinutes') debugTimeOffsetMinutes = value;
+        if (key === 'debugTimeOffsetMinutes') {
+            debugTimeOffsetMinutes = value;
+            localStorage.setItem('timeOffsetMinutes', value);
+        }
         else if (label === 'Energía') stats[key] = value;
         else player[key] = value;
         document.getElementById(`val-${key}`).innerText = val;

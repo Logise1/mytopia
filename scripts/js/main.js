@@ -76,6 +76,12 @@ window.onload = async () => {
         });
     }
 
+    // 6b. Cargar Avance de Hora (Ahora desde Debug Panel, cargamos el valor inicial)
+    const savedTimeOffset = localStorage.getItem('timeOffsetMinutes');
+    if (savedTimeOffset !== null) {
+        debugTimeOffsetMinutes = parseInt(savedTimeOffset);
+    }
+
     // 7. Assets cargados - iniciar cutscene
     startIntroCutscene();
 };
@@ -261,28 +267,29 @@ window.addEventListener('keydown', e => {
 
     // --- Soporte global para ENTER / X en botones ---
     if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'KeyX') {
-        // 1. Iniciar juego si el menú de skin está abierto
-        const skinMenu = document.getElementById('skin-menu');
-        if (skinMenu && !skinMenu.classList.contains('hidden')) {
-            document.getElementById('start-game').click();
-        }
-
-        // 2. Cerrar menú de casa
-        const houseMenu = document.getElementById('house-menu');
-        if (houseMenu && !houseMenu.classList.contains('hidden')) {
-            document.getElementById('close-house-menu').click();
-        }
-
-        // 3. Añadir amigo si el input está enfocado
-        const friendInput = document.getElementById('friend-search-input');
-        if (friendInput === document.activeElement) {
-            document.getElementById('add-friend-btn').click();
-        }
+        // ... (existing buttons)
         
-        // 4. Auth (Login/Register)
-        const authMenu = document.getElementById('auth-menu');
-        if (authMenu && !authMenu.classList.contains('hidden')) {
-            document.getElementById('auth-action-btn').click();
+        // Shop close
+        const shopMenu = document.getElementById('shop-menu');
+        if (shopMenu && !shopMenu.classList.contains('hidden')) {
+            document.getElementById('close-shop-btn').click();
+        }
+    }
+
+    if (e.code === 'KeyR') {
+        const isTyping = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA';
+        if (isTyping) return;
+        
+        const shopMenu = document.getElementById('shop-menu');
+        if (!shopMenu) return;
+
+        // Permitir abrir tienda en isla central, en casa, o si el modo debug está activo
+        const canOpenShop = currentIsland === 'central' || currentIsland === 'home' || debug.active;
+        
+        if (canOpenShop) {
+            shopMenu.classList.toggle('hidden');
+        } else {
+            console.log("Tienda no disponible en esta ubicación:", currentIsland);
         }
     }
 });
@@ -327,6 +334,38 @@ document.getElementById('close-furniture-btn').onclick = () => {
     document.getElementById('furniture-editor').classList.add('hidden');
     selectedFurniture = null;
 };
+
+// --- LÓGICA DE TIENDA ---
+document.getElementById('close-shop-btn').onclick = () => {
+    document.getElementById('shop-menu').classList.add('hidden');
+};
+
+document.querySelectorAll('.buy-btn').forEach(btn => {
+    btn.onclick = () => {
+        const cost = parseInt(btn.dataset.cost);
+        const itemId = btn.parentElement.parentElement.dataset.id;
+        
+        if (coinCount >= cost) {
+            // Verificar si ya tiene la caña
+            if (itemId === 'rod' && inventory.some(i => i.type === 'rod')) {
+                alert("¡Ya tienes una caña de pescar!");
+                return;
+            }
+            
+            coinCount -= cost;
+            inventory.push({ type: itemId });
+            document.getElementById('coin-count').innerText = coinCount;
+            if (document.getElementById('coin-count-inv')) {
+                document.getElementById('coin-count-inv').innerText = coinCount;
+            }
+            saveFurniture();
+            renderInventory();
+            alert("¡Compra realizada!");
+        } else {
+            alert("No tienes suficientes monedas.");
+        }
+    };
+});
 
 // Selección de color de MUEBLES
 document.querySelectorAll('.f-color-btn').forEach(btn => {

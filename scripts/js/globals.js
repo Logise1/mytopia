@@ -333,8 +333,23 @@ const furnitureCaches = {}; // Cache de texturas de muebles con tinte
 // --- ECONOMÍA Y DECORACIÓN ---
 let coinCount = 500;
 let homeFurniture = []; // [{type: 'sofa', x: 100, y: 100}]
+let inventory = []; // [{type: 'fish', count: 1}]
 let houseWallPhotoId = null; 
 let houseWallPhotoImage = new Image();
 let selectedFurniture = null; // Mueble que estamos arrastrando
 let editingFurniture = null;  // Mueble seleccionado para cambiar propiedades (color/borrar)
+
+// --- ESTADO DE PESCA ---
+const fishing = {
+    active: false,
+    rodEquipped: false,
+    state: 'idle', // 'idle', 'waiting', 'bite', 'minigame'
+    timer: 0,
+    minigame: {
+        arrowPos: 0,
+        arrowSpeed: 300,
+        arrowDir: 1,
+        greenZone: { start: 40, width: 20 }
+    }
+};
 

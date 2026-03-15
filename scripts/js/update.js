@@ -1,5 +1,6 @@
 function update(dt) {
     const isInside = currentIsland.includes('_inside');
+    currentActionPrompt = null; // Resetear el prompt en cada frame
 
     // --- LÓGICA DE VIAJE ---
     if (gameState === 'traveling') {
@@ -102,6 +103,11 @@ function update(dt) {
 
         return; // Evita actualizar físicas u otros controles mientras viajas
     }
+
+    // --- LÓGICA DE PESCA ---
+    updateFishing(dt);
+
+    if (fishing.active) return; // Bloquear TODO el movimiento e inputs mientras pescamos (esperando o minijuego)
 
     // Interpolación de otros jugadores
     for (let uid in multiplayer.players) {
@@ -781,5 +787,157 @@ function resolveMapCollisions(isX, oldVal) {
             player.vy = 0;
         }
     }
+}
+
+// --- SISTEMA DE PESCA ---
+function updateFishing(dt) {
+    const hasRodInInv = inventory.some(i => i.type === 'rod');
+
+    if (!fishing.rodEquipped || currentIsland.includes('_inside')) {
+        fishing.active = false;
+        fishing.state = 'idle';
+        const fhUI = document.getElementById('fishing-ui');
+        if (fhUI) fhUI.classList.add('hidden');
+        
+        // Si tiene la caña pero no la tiene equipada y está cerca del agua, avisarle
+        if (hasRodInInv && !currentIsland.includes('_inside') && fishing.state === 'idle') {
+            checkNearWaterPrompt(true);
+        }
+        return;
+    }
+
+    const tx = Math.floor((player.x + 32) / 64);
+    const ty = Math.floor((player.y + 64) / 64);
+    
+    // Detectar si hay agua cerca
+    let nearWater = false;
+    for (let ox = -2; ox <= 2; ox++) { // Aumentamos radio de detección un poco
+        for (let oy = -2; oy <= 2; oy++) {
+            const nx = tx + ox;
+            const ny = ty + oy;
+            if (nx >= 0 && nx < mapSize && ny >= 0 && ny < mapSize) {
+                const tile = mapData[ny][nx];
+                if (tile === 'water' || (tile && tile.includes('wave'))) {
+                    nearWater = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (nearWater && fishing.state === 'idle') {
+        const vel = Math.hypot(player.vx, player.vy);
+        if (vel < 50) { // Tolerancia un poco mayor para frenar
+            currentActionPrompt = "[ESPACIO] Pescar";
+            if (keys['Space']) {
+                fishing.active = true;
+                fishing.state = 'waiting';
+                fishing.timer = 2 + Math.random() * 4;
+                keys['Space'] = false;
+                player.vx = 0; player.vy = 0; // Parar en seco
+            }
+        }
+    }
+
+    if (fishing.state === 'waiting') {
+        fishing.active = true;
+        currentActionPrompt = "Esperando un pez...";
+        fishing.timer -= dt;
+        if (fishing.timer <= 0) {
+            fishing.state = 'bite';
+            fishing.timer = 1.2; // Tiempo para reaccionar
+        }
+        // Solo cancelar si pulsamos teclas de movimiento explicitamente
+        if (keys['KeyW'] || keys['KeyA'] || keys['KeyS'] || keys['KeyD']) {
+            fishing.active = false;
+            fishing.state = 'idle';
+        }
+    }
+
+    if (fishing.state === 'bite') {
+        fishing.active = true;
+        currentActionPrompt = "¡PICA! [ESPACIO]";
+        fishing.timer -= dt;
+        if (keys['Space']) {
+            startFishingMinigame();
+            keys['Space'] = false;
+        } else if (fishing.timer <= 0) {
+            fishing.active = false;
+            fishing.state = 'idle'; // Se escapó
+        }
+    }
+
+    if (fishing.state === 'minigame') {
+        fishing.active = true;
+        const mini = fishing.minigame;
+        mini.arrowPos += mini.arrowSpeed * mini.arrowDir * dt;
+        if (mini.arrowPos >= 100) { mini.arrowPos = 100; mini.arrowDir = -1; }
+        if (mini.arrowPos <= 0) { mini.arrowPos = 0; mini.arrowDir = 1; }
+
+        const arrowEl = document.getElementById('fishing-arrow');
+        if (arrowEl) arrowEl.style.left = mini.arrowPos + '%';
+
+        if (keys['Space']) {
+            const inZone = mini.arrowPos >= mini.greenZone.start && 
+                           mini.arrowPos <= (mini.greenZone.start + mini.greenZone.width);
+            if (inZone) {
+                winFishing();
+            } else {
+                fishing.active = false;
+                fishing.state = 'idle';
+                document.getElementById('fishing-ui').classList.add('hidden');
+                alert("¡Se escapó!");
+            }
+            keys['Space'] = false;
+        }
+    }
+}
+
+function checkNearWaterPrompt(onlyWarning) {
+    const tx = Math.floor((player.x + 32) / 64);
+    const ty = Math.floor((player.y + 64) / 64);
+    let near = false;
+    for (let ox = -2; ox <= 2; ox++) {
+        for (let oy = -2; oy <= 2; oy++) {
+            const nx = tx + ox, ny = ty + oy;
+            if (nx >= 0 && nx < mapSize && ny >= 0 && ny < mapSize) {
+                const t = mapData[ny][nx];
+                if (t === 'water' || (t && t.includes('wave'))) { near = true; break; }
+            }
+        }
+    }
+    if (near && onlyWarning) {
+        currentActionPrompt = "Equipa la caña en el Inventario (L)";
+    }
+    return near;
+}
+
+function startFishingMinigame() {
+    fishing.state = 'minigame';
+    const ui = document.getElementById('fishing-ui');
+    ui.classList.remove('hidden');
+    
+    const mini = fishing.minigame;
+    mini.arrowPos = 0;
+    mini.arrowDir = 1;
+    mini.greenZone.start = 10 + Math.random() * 60;
+    mini.greenZone.width = 20;
+
+    const gz = document.getElementById('fishing-green-zone');
+    if (gz) {
+        gz.style.left = mini.greenZone.start + '%';
+        gz.style.width = mini.greenZone.width + '%';
+    }
+}
+
+function winFishing() {
+    fishing.active = false;
+    fishing.state = 'idle';
+    document.getElementById('fishing-ui').classList.add('hidden');
+    
+    inventory.push({ type: 'fish' });
+    renderInventory();
+    saveFurniture();
+    alert("¡Has pescado un pez! 🐟");
 }
 

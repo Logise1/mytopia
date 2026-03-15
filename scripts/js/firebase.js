@@ -323,10 +323,11 @@ async function saveFurniture() {
         await fb.setDoc(fb.doc(fs, "furniture", multiplayer.userId), {
             items: homeFurniture,
             coins: coinCount,
+            inventory: inventory,
             wallPhotoId: houseWallPhotoId
         });
     } catch (e) {
-        console.error("Error salvando muebles:", e);
+        console.error("Error salvando muebles e inventario:", e);
     }
 }
 
@@ -335,18 +336,21 @@ async function loadFurniture(ownerUid) {
     try {
         const docSnap = await fb.getDoc(fb.doc(fs, "furniture", ownerUid));
         if (docSnap.exists()) {
-            homeFurniture = docSnap.data().items || [];
-            houseWallPhotoId = docSnap.data().wallPhotoId || null;
+            const data = docSnap.data();
+            homeFurniture = data.items || [];
+            houseWallPhotoId = data.wallPhotoId || null;
             if (houseWallPhotoId) loadWallPhoto(houseWallPhotoId);
             else houseWallPhotoImage = null;
 
             if (ownerUid === multiplayer.userId) {
-                coinCount = docSnap.data().coins || 500;
+                coinCount = data.coins !== undefined ? data.coins : 500;
+                inventory = data.inventory || [];
                 document.getElementById('coin-count').innerText = coinCount;
+                if (typeof renderInventory === 'function') renderInventory();
             }
         }
     } catch (e) {
-        console.error("Error cargando muebles:", e);
+        console.error("Error cargando muebles e inventario:", e);
     }
 }
 

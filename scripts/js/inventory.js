@@ -1,5 +1,11 @@
 window.toggleInventory = toggleInventory;
 window.updateCharacterPreview = updateCharacterPreview;
+window.renderInventory = renderInventory;
+
+const itemData = {
+    rod: { name: "Caña de Pescar", icon: "sprites/textures/fishing_rod_icon.png", description: "Úsala cerca del agua para pescar.", sellPrice: 0 },
+    fish: { name: "Pez", icon: "sprites/textures/fish_icon.png", description: "Un pez fresco. Se puede vender.", sellPrice: 50 }
+};
 
 function toggleInventory() {
     const invMenu = document.getElementById('inventory-menu');
@@ -9,9 +15,74 @@ function toggleInventory() {
     
     if (!invMenu.classList.contains('hidden')) {
         updateCharacterPreview();
-        // Set username in preview
-        const nameTag = invMenu.querySelector('.char-name-tag');
-        if (nameTag) nameTag.innerText = multiplayer.username || "Mytopiano";
+        renderInventory();
+        document.getElementById('player-name-inv').innerText = (multiplayer.username || "Mytopiano").toUpperCase();
+        document.getElementById('coin-count-inv').innerText = coinCount;
+    }
+}
+
+function renderInventory() {
+    const grid = document.getElementById('main-inventory-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    // 27 slots (9x3) al estilo Minecraft
+    for (let i = 0; i < 27; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'inv-slot';
+        
+        const item = inventory[i];
+        if (item) {
+            const data = itemData[item.type];
+            if (data) {
+                const img = document.createElement('img');
+                img.src = data.icon;
+                slot.appendChild(img);
+                
+                if (item.type === 'rod' && fishing.rodEquipped) {
+                    slot.classList.add('equipped');
+                }
+
+                slot.onclick = () => showItemDetails(item, i);
+            }
+        }
+        grid.appendChild(slot);
+    }
+}
+
+function showItemDetails(item, index) {
+    const detailsBox = document.getElementById('item-details');
+    const data = itemData[item.type];
+    
+    detailsBox.innerHTML = `
+        <h3>${data.name}</h3>
+        <p>${data.description}</p>
+    `;
+
+    if (item.type === 'rod') {
+        const equipBtn = document.createElement('button');
+        equipBtn.className = 'sell-btn'; // Reutilizamos estilo
+        equipBtn.innerText = fishing.rodEquipped ? 'Desequipar' : 'Equipar';
+        equipBtn.onclick = () => {
+            fishing.rodEquipped = !fishing.rodEquipped;
+            renderInventory();
+            showItemDetails(item, index);
+        };
+        detailsBox.appendChild(equipBtn);
+    } else if (data.sellPrice > 0) {
+        const sellBtn = document.createElement('button');
+        sellBtn.className = 'sell-btn';
+        sellBtn.innerText = `Vender por ${data.sellPrice} 🪙`;
+        sellBtn.onclick = () => {
+            coinCount += data.sellPrice;
+            inventory.splice(index, 1);
+            document.getElementById('coin-count').innerText = coinCount;
+            document.getElementById('coin-count-inv').innerText = coinCount;
+            renderInventory();
+            detailsBox.innerHTML = '<p class="empty-msg">Selecciona un objeto</p>';
+            saveFurniture(); // Guardar cambios en la nube
+        };
+        detailsBox.appendChild(sellBtn);
     }
 }
 
@@ -23,54 +94,26 @@ function updateCharacterPreview() {
     pCtx.imageSmoothingEnabled = false;
     pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
 
-    // Get animations for current skin
     const animSet = getSkinAnimations(skinColor);
     const anim = animSet['forward']; 
-    
-    // Usar el frame actual del jugador para que esté animado
     const currentFrame = Math.floor(player.frame) % 6;
     const frameData = anim ? anim[currentFrame] : null;
 
     if (frameData && (frameData.processed || frameData.original)) {
         const img = frameData.processed || frameData.original;
-        
-        // Mantener relación de aspecto correcta (no aplastar)
-        let baseHeight = 64;
-        let baseWidth = 64;
-        
-        if (frameData.original) {
-            const aspect = frameData.original.width / frameData.original.height;
-            baseWidth = baseHeight * aspect;
-        }
-
-        // Escalar para el preview
         const scale = 2.2;
-        const dw = baseWidth * scale;
-        const dh = baseHeight * scale;
-        
-        // Efecto de bounce ligero (opcional, para que se vea "vivo")
+        const dw = 64 * scale;
+        const dh = 64 * scale;
         const bounce = Math.sin(performance.now() * 0.005) * 5;
-        
         const dx = (previewCanvas.width - dw) / 2;
         const dy = (previewCanvas.height - dh) / 2 + bounce;
-        
         pCtx.drawImage(img, dx, dy, dw, dh);
-    } else {
-        // Fallback: Piel
-        pCtx.fillStyle = skinColor || '#ffdbac';
-        pCtx.beginPath();
-        pCtx.arc(previewCanvas.width/2, previewCanvas.height/2, 44, 0, Math.PI * 2);
-        pCtx.fill();
     }
 }
 
-// Add hotkey listener
 window.addEventListener('keydown', e => {
     if (e.code === 'KeyL') {
-        // Don't open if in menus that block gameplay where typing might happen
         const isTyping = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA';
-        if (!isTyping) {
-            toggleInventory();
-        }
+        if (!isTyping) toggleInventory();
     }
 });
